@@ -1,0 +1,49 @@
+name: DeepTrack CI
+
+on:
+  push:
+    branches: [main, "feature/**", "fix/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend - Java 17 / Maven
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Obtener codigo
+        uses: actions/checkout@v4
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: Compilar y ejecutar pruebas
+        run: mvn --batch-mode --no-transfer-progress clean verify
+
+  frontend:
+    name: Frontend - Node 20 / Vite
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Obtener codigo
+        uses: actions/checkout@v4
+      - name: Configurar Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+      - name: Compilar frontend
+        run: npm run build
