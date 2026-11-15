@@ -1,0 +1,17 @@
+# Perfil de producción: SQL Server (BD_Pozos_Yaqui, proporcionada por Tecnologías).
+# Las credenciales se pasan por variables de entorno; nunca se escriben aquí.
+#   DB_URL      ej. jdbc:sqlserver://HOST:1433;databaseName=BD_Pozos_Yaqui;encrypt=true;trustServerCertificate=true
+#   DB_USER
+#   DB_PASSWORD
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+  jpa:
+    hibernate:
+      # "validate": Hibernate NUNCA modifica el esquema de la BD de TI.
+      # Si los nombres de tabla/columna no coinciden, la app falla al arrancar y
+      # hay que ajustar las entidades en com.deeptrack.model.
+      ddl-auto: validate

@@ -1,0 +1,16 @@
+spring:
+  profiles:
+    active: dev
+  jpa:
+    open-in-view: false
+
+server:
+  port: 8080
+
+deeptrack:
+  alerta:
+    # Profundidad (m) a partir de la cual una sonda se considera en alerta.
+    # PENDIENTE: confirmar el umbral real con el área de negocio (ver SRS, pendiente #1).
+    umbral-metros: 20
+  cors:
+    allowed-origins: http://localhost:5173

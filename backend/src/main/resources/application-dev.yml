@@ -1,0 +1,17 @@
+# Desarrollo local: base H2 persistente en backend/data/ (ignorada por Git).
+# NO se conecta a SQL Server ni modifica ninguna base institucional.
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/deeptrack;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      # Mantiene las tablas y los registros entre reinicios.
+      ddl-auto: update
+    show-sql: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
