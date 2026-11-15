@@ -6,6 +6,7 @@ import SondaForm from './SondaForm.jsx';
 import TrendModal from './TrendModal.jsx';
 
 export default function Dashboard({ user, onLogout }) {
+  const canManage = ['ADMINISTRADOR', 'ANALISTA'].includes(user.rol);
   const [sondas, setSondas] = useState([]);
   const [loadError, setLoadError] = useState('');
   const [formState, setFormState] = useState(null); // null = cerrado | { sonda } = abierto (sonda null = nueva)
@@ -59,6 +60,7 @@ export default function Dashboard({ user, onLogout }) {
       <div className="dash-body">
         <MapView sondas={sondas} onSelect={setTrendSonda} />
         <SondaPanel
+          canManage={canManage}
           sondas={sondas}
           onNew={() => setFormState({ sonda: null })}
           onEdit={(s) => setFormState({ sonda: s })}
