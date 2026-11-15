@@ -63,6 +63,6 @@ class SecurityIntegrationTest {
         mvc.perform(get("/api/usuarios").session(session)).andExpect(status().isForbidden());
         mvc.perform(post("/api/auth/logout").session(session).header("X-CSRF-TOKEN", token))
                 .andExpect(status().isNoContent());
-        mvc.perform(get("/api/sondas").session(session)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/sondas")).andExpect(status().isUnauthorized());
     }
 }
