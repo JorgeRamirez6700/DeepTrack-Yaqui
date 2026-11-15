@@ -37,7 +37,7 @@
 
     <!-- Spring Security: sesiones autenticadas, CSRF y permisos por rol -->
     <dependency>
-      <groupId>org.springframework.security</groupId>
+      <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
 
