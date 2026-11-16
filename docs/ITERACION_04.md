@@ -8,6 +8,12 @@
 - `POST /api/auth/logout` invalida la sesión.
 - Sesión almacenada en cookie HttpOnly SameSite=Lax; 30 minutos de inactividad.
 
+## Depuración adicional (16-11-2026)
+- Comprobación de vigencia de la cuenta y rol en cada petición autenticada.
+- La interfaz regresa al inicio de sesión si recibe HTTP 401 durante una petición protegida.
+- Nuevas pruebas de integración para revocación por desactivación de usuario y cambio de rol.
+- Cookie de sesión marcada `Secure` en perfil `prod`.
+
 ## Pruebas manuales
 1. Ejecutar backend (`mvn spring-boot:run`) y frontend (`npm install && npm run dev`).
 2. Login admin/admin123: debe mostrar mapa; crear sondas y usuarios debe funcionar.
@@ -17,8 +23,8 @@
 6. Logout y actualizar la página: vuelve al login.
 
 ## Límites de esta versión
-- Perfiles de producción requieren HTTPS y `DEEPTRACK_COOKIE_SECURE=true`; configurar proxy TLS correctamente.
-- La información de roles se captura al iniciar sesión: cambios administrativos de roles o revocaciones de cuentas no terminan sesiones preexistentes de inmediato.
+- En el perfil `prod`, la cookie lleva `Secure`; desplegar solo mediante HTTPS y configurar el proxy TLS correctamente.
+- En cada petición autenticada se verifica que la cuenta siga activa y conserve el mismo rol; si se desactiva o cambia, se invalida la sesión existente (consultas adicionales a la BD).
 - El perfil de desarrollo crea usuarios de ejemplo; **no publicar ese perfil en Internet**.
 - No se implementa todavía recuperación de contraseñas, limitación de intentos ni auditoría de acceso.
 - La integración SQL Server y los reportes mensuales siguen pendientes.
