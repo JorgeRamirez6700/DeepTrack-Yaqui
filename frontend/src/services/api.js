@@ -18,6 +18,9 @@ async function request(path, options = {}) {
     headers,
   });
   if (!res.ok) {
+    if (res.status === 401 && !['/auth/login', '/auth/me'].includes(path)) {
+      window.dispatchEvent(new Event('deeptrack:session-expired'));
+    }
     let message = 'Ocurrió un error. Intenta de nuevo.';
     try {
       const body = await res.json();
