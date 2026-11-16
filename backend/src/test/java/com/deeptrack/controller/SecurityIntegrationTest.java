@@ -2,6 +2,8 @@ package com.deeptrack.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.deeptrack.repository.UsuarioRepository;
+import com.deeptrack.model.Usuario;
 import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SecurityIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @Autowired UsuarioRepository usuarios;
 
     @Test
     void rechazaConsultasSinAutenticacion() throws Exception {
@@ -65,4 +68,56 @@ class SecurityIntegrationTest {
                 .andExpect(status().isNoContent());
         mvc.perform(get("/api/sondas")).andExpect(status().isUnauthorized());
     }
+    @Test
+    void revocaSesionDeUsuarioDesactivado() throws Exception {
+        MvcResult csrfResult = mvc.perform(get("/api/auth/csrf"))
+                .andExpect(status().isOk()).andReturn();
+        MockHttpSession session = (MockHttpSession) csrfResult.getRequest().getSession(false);
+        assertNotNull(session);
+        String token = json.readTree(csrfResult.getResponse().getContentAsString()).get("token").asText();
+        mvc.perform(post("/api/auth/login").session(session)
+                .header("X-CSRF-TOKEN", token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"usuario\":\"analista\",\"password\":\"analista123\"}"))
+                .andExpect(status().isOk());
+
+        Usuario usuario = usuarios.findByUsuarioLogin("analista").orElseThrow();
+        String estadoOriginal = usuario.getEstado();
+        try {
+            usuario.setEstado("INACTIVO");
+            usuarios.saveAndFlush(usuario);
+            mvc.perform(get("/api/sondas").session(session))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value("La sesión ya no es válida"));
+        } finally {
+            usuario.setEstado(estadoOriginal);
+            usuarios.saveAndFlush(usuario);
+        }
+    }
+
+    @Test
+    void revocaSesionCuandoCambiaElRol() throws Exception {
+        MvcResult csrfResult = mvc.perform(get("/api/auth/csrf"))
+                .andExpect(status().isOk()).andReturn();
+        MockHttpSession session = (MockHttpSession) csrfResult.getRequest().getSession(false);
+        String token = json.readTree(csrfResult.getResponse().getContentAsString()).get("token").asText();
+        mvc.perform(post("/api/auth/login").session(session)
+                .header("X-CSRF-TOKEN", token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"usuario\":\"analista\",\"password\":\"analista123\"}"))
+                .andExpect(status().isOk());
+
+        Usuario usuario = usuarios.findByUsuarioLogin("analista").orElseThrow();
+        String rolOriginal = usuario.getRol();
+        try {
+            usuario.setRol("CONSULTA");
+            usuarios.saveAndFlush(usuario);
+            mvc.perform(get("/api/sondas").session(session))
+                    .andExpect(status().isUnauthorized());
+        } finally {
+            usuario.setRol(rolOriginal);
+            usuarios.saveAndFlush(usuario);
+        }
+    }
+
 }
