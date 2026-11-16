@@ -19,6 +19,12 @@ export default function App() {
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    const onExpired = () => setUser(null);
+    window.addEventListener('deeptrack:session-expired', onExpired);
+    return () => window.removeEventListener('deeptrack:session-expired', onExpired);
+  }, []);
+
   const handleLogout = async () => {
     try {
       await api.logout();
