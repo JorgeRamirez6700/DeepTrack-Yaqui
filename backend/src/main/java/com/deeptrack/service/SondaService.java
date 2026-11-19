@@ -44,11 +44,12 @@ public class SondaService {
     /** HU-10: alta de sonda. */
     @Transactional
     public SondaDTO crear(SondaRequest req) {
-        if (sondaRepository.existsById(req.idSonda())) {
-            throw ApiException.conflict("Ya existe una sonda con el ID " + req.idSonda());
+        String idNormalizado = req.idSonda().trim();
+        if (sondaRepository.existsById(idNormalizado)) {
+            throw ApiException.conflict("Ya existe una sonda con el ID " + idNormalizado);
         }
         Sonda sonda = new Sonda();
-        sonda.setIdSonda(req.idSonda().trim());
+        sonda.setIdSonda(idNormalizado);
         aplicarCampos(sonda, req);
         sondaRepository.save(sonda);
         registrarLecturaSiViene(sonda.getIdSonda(), req.profundidadActual());
