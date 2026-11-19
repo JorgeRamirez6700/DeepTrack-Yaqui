@@ -41,6 +41,7 @@ export const api = {
   me: () => request('/auth/me'),
   logout: () => request('/auth/logout', { method: 'POST' }),
   listarSondas: () => request('/sondas'),
+  resumenValle: (periodo) => request(`/estadisticas/resumen?periodo=${encodeURIComponent(periodo)}`),
   crearSonda: (data) => request('/sondas', { method: 'POST', body: JSON.stringify(data) }),
   actualizarSonda: (id, data) =>
     request(`/sondas/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
