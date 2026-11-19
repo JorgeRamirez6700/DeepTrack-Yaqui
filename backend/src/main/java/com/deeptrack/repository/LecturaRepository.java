@@ -15,5 +15,9 @@ public interface LecturaRepository extends JpaRepository<Lectura, Long> {
     /** Serie histórica desde una fecha (RF-04 / RF-05: gráfica y filtros de tiempo). */
     List<Lectura> findByIdSondaAndFechaHoraAfterOrderByFechaHoraAsc(String idSonda, LocalDateTime desde);
 
+    /** Lecturas de un periodo para consolidar estadísticas entre sondas. */
+    List<Lectura> findByFechaHoraGreaterThanEqualAndFechaHoraLessThanOrderByFechaHoraAsc(
+            LocalDateTime inicio, LocalDateTime fin);
+
     void deleteByIdSonda(String idSonda);
 }
