@@ -5,6 +5,7 @@ import SondaPanel from './SondaPanel.jsx';
 import SondaForm from './SondaForm.jsx';
 import TrendModal from './TrendModal.jsx';
 import ValleSummary from './ValleSummary.jsx';
+import ValleReports from './ValleReports.jsx';
 
 export default function Dashboard({ user, onLogout }) {
   const canManage = ['ADMINISTRADOR', 'ANALISTA'].includes(user.rol);
@@ -59,6 +60,7 @@ export default function Dashboard({ user, onLogout }) {
       )}
 
       <ValleSummary />
+      <ValleReports />
       <div className="dash-body">
         <MapView sondas={sondas} onSelect={setTrendSonda} />
         <SondaPanel
