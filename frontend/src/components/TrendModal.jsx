@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api } from '../services/api.js';
+import { useTheme } from './ThemeProvider.jsx';
 
 const RANGOS = [
   { id: 'dia', label: 'Último día' },
@@ -18,6 +19,7 @@ const fmtFecha = (iso, rango) => {
 };
 
 export default function TrendModal({ sonda, onClose }) {
+  const { theme } = useTheme();
   const [rango, setRango] = useState('mes');
   const [datos, setDatos] = useState([]);
   const [estado, setEstado] = useState('cargando'); // cargando | ok | error
@@ -73,11 +75,11 @@ export default function TrendModal({ sonda, onClose }) {
           {estado === 'ok' && datos.length > 0 && (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={datos} margin={{ top: 8, right: 12, bottom: 0, left: -12 }}>
-                <CartesianGrid stroke="#E3EBE6" vertical={false} />
-                <XAxis dataKey="etiqueta" tick={{ fontSize: 11 }} minTickGap={24} />
+                <CartesianGrid stroke={theme === 'dark' ? '#40505c' : '#E3EBE6'} vertical={false} />
+                <XAxis dataKey="etiqueta" tick={{ fontSize: 11, fill: theme === 'dark' ? '#adbdc5' : '#637881' }} minTickGap={24} />
                 <YAxis tick={{ fontSize: 11 }} unit=" m" />
                 <Tooltip formatter={(v) => [`${v} m`, 'Profundidad']} labelFormatter={(l) => l} />
-                <Line type="monotone" dataKey="profundidadM" stroke="#2E6E7E" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="profundidadM" stroke={theme === 'dark' ? '#7ec5cd' : '#2E6E7E'} strokeWidth={2.5} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           )}

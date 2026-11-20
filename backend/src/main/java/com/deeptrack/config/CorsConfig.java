@@ -16,6 +16,8 @@ public class CorsConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
                         .allowedOrigins(origins)
+                        .allowCredentials(true)
+                        .allowedHeaders("Content-Type", "X-CSRF-TOKEN")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
             }
         };

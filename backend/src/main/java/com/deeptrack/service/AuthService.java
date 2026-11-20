@@ -19,10 +19,7 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * Login básico: valida usuario/contraseña contra la BD y devuelve los datos del usuario.
-     * PENDIENTE (HU-03): emitir JWT, proteger los demás endpoints y aplicar roles (RNF-03).
-     */
+    /** Valida credenciales y estado. La sesión se crea en AuthController. */
     public LoginResponse login(LoginRequest req) {
         Usuario u = usuarioRepository.findByUsuarioLogin(req.usuario())
                 .orElseThrow(() -> ApiException.unauthorized("Usuario o contraseña incorrectos"));

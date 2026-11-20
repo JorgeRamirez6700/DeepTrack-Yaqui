@@ -105,4 +105,15 @@ class SondaServiceTest {
         assertFalse(captor.getValue().isAfter(despues));
     }
 
+    @Test
+    void crearNormalizaIdAntesDeComprobarDuplicado() {
+        when(sondaRepository.existsById("SN-1")).thenReturn(true);
+        com.deeptrack.dto.SondaRequest req = new com.deeptrack.dto.SondaRequest(
+                "  SN-1  ", "A1", 27.4, -109.9, "ACTIVA", null);
+        ApiException ex = assertThrows(ApiException.class, () -> service.crear(req));
+        assertEquals(409, ex.getStatus().value());
+        verify(sondaRepository).existsById("SN-1");
+        verify(sondaRepository, org.mockito.Mockito.never()).save(any());
+    }
+
 }

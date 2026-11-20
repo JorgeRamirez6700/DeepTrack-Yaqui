@@ -15,3 +15,10 @@ spring:
       # Si los nombres de tabla/columna no coinciden, la app falla al arrancar y
       # hay que ajustar las entidades en com.deeptrack.model.
       ddl-auto: validate
+
+# En producción las cookies de sesión solo deben enviarse por HTTPS.
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true

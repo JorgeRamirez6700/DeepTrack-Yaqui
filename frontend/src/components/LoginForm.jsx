@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../services/api.js';
+import { ThemeSelector } from './ThemeProvider.jsx';
 
 export default function LoginForm({ onLogin }) {
   const [usuario, setUsuario] = useState('');
@@ -47,6 +48,7 @@ export default function LoginForm({ onLogin }) {
       </aside>
 
       <main className="login-form-wrap">
+        <div className="login-theme"><ThemeSelector compact /></div>
         <form className="login-form" onSubmit={handleSubmit}>
           <h2>Iniciar sesión</h2>
           <p className="sub">Ingresa con tu cuenta institucional.</p>

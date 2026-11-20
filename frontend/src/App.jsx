@@ -1,29 +1,41 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import LoginForm from './components/LoginForm.jsx';
 import Dashboard from './components/Dashboard.jsx';
-
-const SESSION_KEY = 'deeptrack_user';
-
-function readSession() {
-  try {
-    return JSON.parse(sessionStorage.getItem(SESSION_KEY));
-  } catch {
-    return null;
-  }
-}
+import { api } from './services/api.js';
 
 export default function App() {
-  const [user, setUser] = useState(readSession);
+  const [user, setUser] = useState(null);
+  const [checking, setChecking] = useState(true);
 
-  const handleLogin = (u) => {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(u));
-    setUser(u);
+  useEffect(() => {
+    let active = true;
+    api.me().then((u) => {
+      if (active) setUser(u);
+    }).catch(() => {
+      if (active) setUser(null);
+    }).finally(() => {
+      if (active) setChecking(false);
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    const onExpired = () => setUser(null);
+    window.addEventListener('deeptrack:session-expired', onExpired);
+    return () => window.removeEventListener('deeptrack:session-expired', onExpired);
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+      setUser(null);
+    } catch (err) {
+      window.alert(`No se pudo cerrar sesión: ${err.message}`);
+    }
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem(SESSION_KEY);
-    setUser(null);
-  };
-
-  return user ? <Dashboard user={user} onLogout={handleLogout} /> : <LoginForm onLogin={handleLogin} />;
+  if (checking) return <div className="login-screen"><main className="login-form-wrap">Verificando sesión…</main></div>;
+  return user
+    ? <Dashboard user={user} onLogout={handleLogout} />
+    : <LoginForm onLogin={setUser} />;
 }
