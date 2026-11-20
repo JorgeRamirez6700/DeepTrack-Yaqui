@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 import { api } from '../services/api.js';
+import { useTheme } from './ThemeProvider.jsx';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio',
   'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -38,7 +39,10 @@ function exportarCsv(datos) {
   URL.revokeObjectURL(url);
 }
 
-export default function ValleReports() {
+export default function ValleReports({ mode = 'all' }) {
+  const { theme } = useTheme();
+  const showTrend = mode === 'all' || mode === 'trend';
+  const showReport = mode === 'all' || mode === 'report';
   const [meses, setMeses] = useState(12);
   const [tendencia, setTendencia] = useState(null);
   const [errorTendencia, setErrorTendencia] = useState('');
@@ -51,22 +55,24 @@ export default function ValleReports() {
   useEffect(() => {
     let active = true;
     setErrorTendencia('');
+    if (!showTrend) return () => { active = false; };
     api.tendenciaValle(meses)
       .then(d => { if (active) setTendencia(d); })
       .catch(err => { if (active) { setTendencia(null); setErrorTendencia(err.message); } });
     return () => { active = false; };
-  }, [meses]);
+  }, [meses, showTrend]);
 
   useEffect(() => {
     let active = true;
     setCargando(true);
     setErrorReporte('');
+    if (!showReport) return () => { active = false; };
     api.reporteMensual(anio, mes)
       .then(d => { if (active) setReporte(d); })
       .catch(err => { if (active) { setReporte(null); setErrorReporte(err.message); } })
       .finally(() => { if (active) setCargando(false); });
     return () => { active = false; };
-  }, [anio, mes]);
+  }, [anio, mes, showReport]);
 
   const anios = Array.from({ length: now.getFullYear() - 2020 + 1 },
     (_, i) => now.getFullYear() - i);
@@ -76,7 +82,7 @@ export default function ValleReports() {
 
   return (
     <section className="valle-reports">
-      <div className="valle-report-chart">
+      {showTrend && <div className="valle-report-chart">
         <div className="report-header">
           <div><h2>Evolución mensual del Valle del Yaqui</h2>
             <p>Media entre los promedios de las sondas activas con lecturas.</p></div>
@@ -93,21 +99,21 @@ export default function ValleReports() {
           <div className="report-chart-box">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={datosGrafica} margin={{ top: 12, right: 20, bottom: 8, left: 4 }}>
-                <CartesianGrid stroke="#dfe9e5" vertical={false}/>
-                <XAxis dataKey="etiqueta" tick={{ fontSize: 11 }} minTickGap={16}/>
-                <YAxis unit=" m" tick={{ fontSize: 11 }} domain={['auto', 'auto']}/>
+                <CartesianGrid stroke={theme === 'dark' ? '#40505c' : '#dfe9e5'} vertical={false}/>
+                <XAxis dataKey="etiqueta" tick={{ fontSize: 11, fill: theme === 'dark' ? '#aebfc6' : '#60757d' }} minTickGap={16}/>
+                <YAxis unit=" m" tick={{ fontSize: 11, fill: theme === 'dark' ? '#aebfc6' : '#60757d' }} domain={['auto', 'auto']}/>
                 <Tooltip formatter={(v, name) => [fmt(v), name]}
                   labelFormatter={(l) => l}/>
                 <Line dataKey="profundidadMediaM" name="Profundidad media" type="monotone"
-                  stroke="#2e6e7e" strokeWidth={2.5} dot={{ r: 2 }} connectNulls={false}/>
+                  stroke={theme === 'dark' ? '#7ec5cd' : '#2e6e7e'} strokeWidth={2.5} dot={{ r: 2 }} connectNulls={false}/>
               </LineChart>
             </ResponsiveContainer>
           </div>
         )}
         <p className="valle-nota">Los meses sin lecturas aparecen sin valor. Una profundidad mayor indica un espejo de agua más profundo; no representa por sí sola el estado de todo el acuífero.</p>
-      </div>
+      </div>}
 
-      <div className="valle-report-print" id="reporte-mensual-deeptrack">
+      {showReport && <div className="valle-report-print" id="reporte-mensual-deeptrack">
         <div className="report-header">
           <div><h2>Reporte mensual del Valle del Yaqui</h2>
             <p>Resumen descriptivo · Datos simulados de desarrollo</p></div>
@@ -154,7 +160,7 @@ export default function ValleReports() {
             </div>
           </>
         )}
-      </div>
+      </div>}
     </section>
   );
 }
