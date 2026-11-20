@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTheme } from './ThemeProvider.jsx';
 import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from '@react-google-maps/api';
 
 // Centro aproximado del Valle del Yaqui, Sonora.
@@ -23,6 +24,7 @@ export default function MapView({ sondas, onSelect }) {
 }
 
 function LoadedMap({ sondas, onSelect }) {
+  const { theme } = useTheme();
   const { isLoaded, loadError } = useJsApiLoader({ googleMapsApiKey: API_KEY });
   const [hover, setHover] = useState(null);
 
@@ -43,7 +45,17 @@ function LoadedMap({ sondas, onSelect }) {
       mapContainerClassName="gmap"
       center={CENTER}
       zoom={10}
-      options={{ mapTypeId: 'terrain', streetViewControl: false, fullscreenControl: false }}
+      options={{
+        mapTypeId: 'roadmap', streetViewControl: false, fullscreenControl: false,
+        styles: theme === 'dark' ? [
+          { elementType: 'geometry', stylers: [{ color: '#26343f' }] },
+          { elementType: 'labels.text.fill', stylers: [{ color: '#c0ced2' }] },
+          { elementType: 'labels.text.stroke', stylers: [{ color: '#25333d' }] },
+          { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#345e72' }] },
+          { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#42525c' }] },
+          { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+        ] : [],
+      }}
     >
       {sondas.map((s) => (
         <Marker
