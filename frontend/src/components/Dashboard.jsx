@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../services/api.js';
 import MapView from './MapView.jsx';
 import SondaPanel from './SondaPanel.jsx';
@@ -18,7 +18,10 @@ const PAGES = [
 
 export default function Dashboard({ user, onLogout }) {
   const canManage = ['ADMINISTRADOR', 'ANALISTA'].includes(user.rol);
-  const [page, setPage] = useState('inicio');
+  const [page, setPage] = useState(() => PAGES.some(p => p.id === location.hash.slice(1)) ? location.hash.slice(1) : 'inicio');
+  const mainRef = useRef(null);
+  const menuRef = useRef(null);
+  const sidebarRef = useRef(null);
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('deeptrack-sidebar-collapsed') === 'true'; }
     catch { return false; }
@@ -55,9 +58,30 @@ export default function Dashboard({ user, onLogout }) {
     catch { /* almacenamiento no disponible */ }
   }, [collapsed]);
 
+  useEffect(() => {
+    const onHash = () => {
+      const target = location.hash.slice(1);
+      setPage(PAGES.some(p => p.id === target) ? target : 'inicio');
+      setMobileMenu(false);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  useEffect(() => {
+    if (!mobileMenu) return;
+    sidebarRef.current?.querySelector('nav button')?.focus();
+    const close = e => {
+      if (e.key === 'Escape') { setMobileMenu(false); menuRef.current?.focus(); }
+    };
+    document.addEventListener('keydown', close);
+    return () => document.removeEventListener('keydown', close);
+  }, [mobileMenu]);
+
   const elegirPagina = (target) => {
+    if (location.hash !== '#' + target) location.hash = target;
     setPage(target);
     setMobileMenu(false);
+    requestAnimationFrame(() => mainRef.current?.focus());
   };
 
   const handleSave = async (data, editingId) => {
@@ -110,7 +134,8 @@ export default function Dashboard({ user, onLogout }) {
         <button className="sidebar-backdrop" aria-label="Cerrar navegación"
           onClick={() => setMobileMenu(false)} />
       )}
-      <aside className={`app-sidebar${mobileMenu ? ' mobile-open' : ''}`} aria-label="Navegación principal">
+      <a className="skip-link" href="#main-content" onClick={e => { e.preventDefault(); mainRef.current?.focus(); }}>Ir al contenido</a>
+      <aside ref={sidebarRef} className={`app-sidebar${mobileMenu ? ' mobile-open' : ''}`} aria-label="Navegación principal">
         <div className="sidebar-brand">
           <span className="brand-symbol" aria-hidden="true">≈</span>
           <span className="brand-label"><strong>DeepTrack</strong><small>VALLE DEL YAQUI</small></span>
@@ -121,7 +146,7 @@ export default function Dashboard({ user, onLogout }) {
         <nav className="sidebar-nav" aria-label="Secciones">
           <span className="nav-heading">PLATAFORMA</span>
           {PAGES.map((item) => (
-            <button key={item.id} type="button" title={item.title}
+            <button key={item.id} type="button" title={item.title} aria-label={item.title}
               className={`nav-item${page === item.id ? ' selected' : ''}`}
               aria-current={page === item.id ? 'page' : undefined}
               onClick={() => elegirPagina(item.id)}>
@@ -136,13 +161,13 @@ export default function Dashboard({ user, onLogout }) {
             <span className="sidebar-user-info"><strong>{user.nombreCompleto || user.usuario}</strong><small>{user.rol}</small></span>
           </div>
           <button type="button" className="nav-item sidebar-logout" onClick={onLogout}
-            title="Cerrar sesión"><span className="nav-icon" aria-hidden="true">↪</span><span className="nav-label">Cerrar sesión</span></button>
+            title="Cerrar sesión" aria-label="Cerrar sesión"><span className="nav-icon" aria-hidden="true">↪</span><span className="nav-label">Cerrar sesión</span></button>
         </div>
       </aside>
 
       <div className="app-content">
         <header className="app-topbar">
-          <button className="mobile-menu-toggle" type="button" aria-label="Abrir navegación"
+          <button ref={menuRef} className="mobile-menu-toggle" type="button" aria-label="Abrir navegación"
             aria-expanded={mobileMenu} onClick={() => setMobileMenu(true)}>☰</button>
           <div className="topbar-location"><span>MONITOREO HÍDRICO</span><strong>{activa.title}</strong></div>
           <div className="topbar-actions">
@@ -154,7 +179,7 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </header>
 
-        <main className="app-main" id="main-content">
+        <main ref={mainRef} tabIndex={-1} className="app-main" id="main-content">
           <div className="page-heading">
             <div><span className="eyebrow">DEEPTRACK YAQUI</span>
               <h1>{activa.title}</h1><p>{activa.subtitle}</p></div>
