@@ -26,16 +26,27 @@ export default function Dashboard({ user, onLogout }) {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [sondas, setSondas] = useState([]);
   const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState(null);
   const [formState, setFormState] = useState(null);
   const [trendSonda, setTrendSonda] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [stateFilter, setStateFilter] = useState('all');
+  useEffect(() => { if (!notice) return; const timer = setTimeout(() => setNotice(null), 4500); return () => clearTimeout(timer); }, [notice]);
 
   const cargar = useCallback(async () => {
+    setLoading(true);
     try {
       setSondas(await api.listarSondas());
       setLoadError('');
+      setLastUpdate(new Date());
+      setRevision(n => n + 1);
     } catch (err) {
       setLoadError(err.message);
-    }
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
@@ -53,6 +64,7 @@ export default function Dashboard({ user, onLogout }) {
     if (editingId) await api.actualizarSonda(editingId, data);
     else await api.crearSonda(data);
     setFormState(null);
+    setNotice({ text: 'Sonda guardada correctamente', error: false });
     await cargar();
   };
 
@@ -61,21 +73,29 @@ export default function Dashboard({ user, onLogout }) {
     try {
       await api.eliminarSonda(id);
       setFormState(null);
+      setNotice({ text: 'Sonda eliminada correctamente', error: false });
       await cargar();
     } catch (err) {
-      window.alert(err.message);
+      setNotice({ text: err.message, error: true });
     }
   };
 
   const activa = PAGES.find((item) => item.id === page);
   const activas = sondas.filter((s) => s.estado === 'ACTIVA').length;
   const alertas = sondas.filter((s) => s.enAlerta).length;
+  const visible = sondas.filter(s => {
+    const matches = `${s.idSonda} ${s.cuadrante}`.toLowerCase().includes(query.trim().toLowerCase());
+    const alertMatches = filter === 'all' || (filter === 'alert' ? s.enAlerta : !s.enAlerta && s.profundidadActual != null);
+    return matches && alertMatches && (stateFilter === 'all' || s.estado === stateFilter);
+  });
   const mapaPanel = (
     <div className="dash-body">
-      <MapView sondas={sondas} onSelect={setTrendSonda} />
+      <MapView sondas={visible} onSelect={setTrendSonda} />
       <SondaPanel
         canManage={canManage}
-        sondas={sondas}
+        sondas={visible}
+        total={sondas.length} query={query} onQuery={setQuery}
+        filter={filter} onFilter={setFilter} stateFilter={stateFilter} onStateFilter={setStateFilter}
         onNew={() => setFormState({ sonda: null })}
         onEdit={(s) => setFormState({ sonda: s })}
         onDelete={handleDelete}
@@ -144,19 +164,20 @@ export default function Dashboard({ user, onLogout }) {
             )}
           </div>
 
+          {page !== 'configuracion' && <div className="refresh-row"><span role="status">{loading ? 'Actualizando sondas…' : lastUpdate ? `Sondas: última consulta ${lastUpdate.toLocaleTimeString('es-MX')}${loadError ? ' (datos anteriores)' : ''}` : 'Sin datos cargados'}</span><button type="button" className="btn-small" disabled={loading} onClick={cargar}>↻ Actualizar datos</button></div>}
           {loadError && <div className="error-msg banner" role="alert">
             No se pudieron cargar las sondas: {loadError}. ¿Está funcionando el backend?
-            <button type="button" className="btn-small" onClick={cargar}>Reintentar</button>
+            <button type="button" className="btn-small" disabled={loading} onClick={cargar}>Reintentar</button>
           </div>}
 
           {page === 'inicio' && (
             <>
               <div className="overview-cards">
-                <div className="overview-card"><span>Sondas registradas</span><strong>{sondas.length}</strong><small>Dispositivos en el sistema</small></div>
-                <div className="overview-card"><span>Sondas activas</span><strong>{activas}</strong><small>Disponibles para monitoreo</small></div>
-                <div className="overview-card"><span>Alertas de profundidad</span><strong>{alertas}</strong><small>Según umbral de desarrollo</small></div>
+                <div className="overview-card"><span>Sondas registradas</span><strong>{lastUpdate ? sondas.length : '—'}</strong><small>Dispositivos en el sistema</small></div>
+                <div className="overview-card"><span>Sondas activas</span><strong>{lastUpdate ? activas : '—'}</strong><small>Disponibles para monitoreo</small></div>
+                <div className="overview-card"><span>Alertas de profundidad</span><strong>{lastUpdate ? alertas : '—'}</strong><small>Según umbral de desarrollo</small></div>
               </div>
-              <ValleSummary />
+              <ValleSummary revision={revision} />
               <div className="section-heading"><h2>Mapa y sondas</h2>
                 <button className="btn-small" type="button" onClick={() => elegirPagina('mapa')}>Abrir mapa completo ›</button>
               </div>
@@ -168,12 +189,12 @@ export default function Dashboard({ user, onLogout }) {
 
           {page === 'estadisticas' && (
             <>
-              <ValleSummary />
-              <ValleReports mode="trend" />
+              <ValleSummary revision={revision} />
+              <ValleReports mode="trend" revision={revision} />
             </>
           )}
 
-          {page === 'reportes' && <ValleReports mode="report" />}
+          {page === 'reportes' && <ValleReports mode="report" revision={revision} />}
 
           {page === 'configuracion' && (
             <section className="settings-card">
@@ -187,6 +208,7 @@ export default function Dashboard({ user, onLogout }) {
         </main>
       </div>
 
+      {notice && <div className={`monitor-toast${notice.error ? ' toast-error' : ''}`} role={notice.error ? 'alert' : 'status'}>{notice.text}<button type="button" aria-label="Cerrar aviso" onClick={() => setNotice(null)}>×</button></div>}
       {formState && <SondaForm
         sonda={formState.sonda} onSave={handleSave} onDelete={handleDelete}
         onClose={() => setFormState(null)} />}
