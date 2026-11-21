@@ -26,15 +26,16 @@ export default function MapView({ sondas, onSelect }) {
 function LoadedMap({ sondas, onSelect }) {
   const { theme } = useTheme();
   const { isLoaded, loadError } = useJsApiLoader({ googleMapsApiKey: API_KEY });
-  const [hover, setHover] = useState(null);
+  const [hoverId, setHover] = useState(null);
+  const hover = sondas.find(s => s.idSonda === hoverId);
 
   if (loadError) return <div className="map-placeholder">No se pudo cargar Google Maps.</div>;
   if (!isLoaded) return <div className="map-placeholder">Cargando mapa…</div>;
 
-  const icon = (enAlerta) => ({
+  const icon = (sonda) => ({
     path: window.google.maps.SymbolPath.CIRCLE,
     scale: 9,
-    fillColor: enAlerta ? '#B5502E' : '#2E6E7E',
+    fillColor: sonda.enAlerta ? '#B5502E' : sonda.profundidadActual == null ? '#81939b' : '#2E6E7E',
     fillOpacity: 1,
     strokeColor: '#FFFFFF',
     strokeWeight: 2,
@@ -61,8 +62,9 @@ function LoadedMap({ sondas, onSelect }) {
         <Marker
           key={s.idSonda}
           position={{ lat: s.latitud, lng: s.longitud }}
-          icon={icon(s.enAlerta)}
-          onMouseOver={() => setHover(s)}
+          icon={icon(s)}
+          title={s.idSonda}
+          onMouseOver={() => setHover(s.idSonda)}
           onMouseOut={() => setHover(null)}
           onClick={() => onSelect(s)}
         />
@@ -74,7 +76,7 @@ function LoadedMap({ sondas, onSelect }) {
             <strong>{hover.idSonda}</strong>
             <div>Cuadrante: {hover.cuadrante}</div>
             <div>Profundidad: {hover.profundidadActual ?? '—'} m</div>
-            <div>Estado: {hover.enAlerta ? 'Alerta — nivel crítico' : 'Normal'}</div>
+            <div>Estado: {hover.enAlerta ? 'Alerta — umbral superado' : hover.profundidadActual == null ? 'Sin datos' : 'Normal'}</div>
           </div>
         </InfoWindow>
       )}

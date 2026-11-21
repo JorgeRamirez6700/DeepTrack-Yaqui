@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../services/api.js';
 import MapView from './MapView.jsx';
 import SondaPanel from './SondaPanel.jsx';
@@ -18,7 +18,10 @@ const PAGES = [
 
 export default function Dashboard({ user, onLogout }) {
   const canManage = ['ADMINISTRADOR', 'ANALISTA'].includes(user.rol);
-  const [page, setPage] = useState('inicio');
+  const [page, setPage] = useState(() => PAGES.some(p => p.id === location.hash.slice(1)) ? location.hash.slice(1) : 'inicio');
+  const mainRef = useRef(null);
+  const menuRef = useRef(null);
+  const sidebarRef = useRef(null);
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('deeptrack-sidebar-collapsed') === 'true'; }
     catch { return false; }
@@ -26,16 +29,27 @@ export default function Dashboard({ user, onLogout }) {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [sondas, setSondas] = useState([]);
   const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState(null);
   const [formState, setFormState] = useState(null);
   const [trendSonda, setTrendSonda] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [stateFilter, setStateFilter] = useState('all');
+  useEffect(() => { if (!notice) return; const timer = setTimeout(() => setNotice(null), 4500); return () => clearTimeout(timer); }, [notice]);
 
   const cargar = useCallback(async () => {
+    setLoading(true);
     try {
       setSondas(await api.listarSondas());
       setLoadError('');
+      setLastUpdate(new Date());
+      setRevision(n => n + 1);
     } catch (err) {
       setLoadError(err.message);
-    }
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
@@ -44,15 +58,37 @@ export default function Dashboard({ user, onLogout }) {
     catch { /* almacenamiento no disponible */ }
   }, [collapsed]);
 
+  useEffect(() => {
+    const onHash = () => {
+      const target = location.hash.slice(1);
+      setPage(PAGES.some(p => p.id === target) ? target : 'inicio');
+      setMobileMenu(false);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  useEffect(() => {
+    if (!mobileMenu) return;
+    sidebarRef.current?.querySelector('nav button')?.focus();
+    const close = e => {
+      if (e.key === 'Escape') { setMobileMenu(false); menuRef.current?.focus(); }
+    };
+    document.addEventListener('keydown', close);
+    return () => document.removeEventListener('keydown', close);
+  }, [mobileMenu]);
+
   const elegirPagina = (target) => {
+    if (location.hash !== '#' + target) location.hash = target;
     setPage(target);
     setMobileMenu(false);
+    requestAnimationFrame(() => mainRef.current?.focus());
   };
 
   const handleSave = async (data, editingId) => {
     if (editingId) await api.actualizarSonda(editingId, data);
     else await api.crearSonda(data);
     setFormState(null);
+    setNotice({ text: 'Sonda guardada correctamente', error: false });
     await cargar();
   };
 
@@ -61,21 +97,29 @@ export default function Dashboard({ user, onLogout }) {
     try {
       await api.eliminarSonda(id);
       setFormState(null);
+      setNotice({ text: 'Sonda eliminada correctamente', error: false });
       await cargar();
     } catch (err) {
-      window.alert(err.message);
+      setNotice({ text: err.message, error: true });
     }
   };
 
   const activa = PAGES.find((item) => item.id === page);
   const activas = sondas.filter((s) => s.estado === 'ACTIVA').length;
   const alertas = sondas.filter((s) => s.enAlerta).length;
+  const visible = sondas.filter(s => {
+    const matches = `${s.idSonda} ${s.cuadrante}`.toLowerCase().includes(query.trim().toLowerCase());
+    const alertMatches = filter === 'all' || (filter === 'alert' ? s.enAlerta : !s.enAlerta && s.profundidadActual != null);
+    return matches && alertMatches && (stateFilter === 'all' || s.estado === stateFilter);
+  });
   const mapaPanel = (
     <div className="dash-body">
-      <MapView sondas={sondas} onSelect={setTrendSonda} />
+      <MapView sondas={visible} onSelect={setTrendSonda} />
       <SondaPanel
         canManage={canManage}
-        sondas={sondas}
+        sondas={visible}
+        total={sondas.length} query={query} onQuery={setQuery}
+        filter={filter} onFilter={setFilter} stateFilter={stateFilter} onStateFilter={setStateFilter}
         onNew={() => setFormState({ sonda: null })}
         onEdit={(s) => setFormState({ sonda: s })}
         onDelete={handleDelete}
@@ -88,9 +132,10 @@ export default function Dashboard({ user, onLogout }) {
     <div className={`app-shell${collapsed ? ' shell-collapsed' : ''}`}>
       {mobileMenu && (
         <button className="sidebar-backdrop" aria-label="Cerrar navegación"
-          onClick={() => setMobileMenu(false)} />
+          onClick={() => { setMobileMenu(false); menuRef.current?.focus(); }} />
       )}
-      <aside className={`app-sidebar${mobileMenu ? ' mobile-open' : ''}`} aria-label="Navegación principal">
+      <a className="skip-link" href="#main-content" onClick={e => { e.preventDefault(); mainRef.current?.focus(); }}>Ir al contenido</a>
+      <aside ref={sidebarRef} className={`app-sidebar${mobileMenu ? ' mobile-open' : ''}`} aria-label="Navegación principal">
         <div className="sidebar-brand">
           <span className="brand-symbol" aria-hidden="true">≈</span>
           <span className="brand-label"><strong>DeepTrack</strong><small>VALLE DEL YAQUI</small></span>
@@ -101,7 +146,7 @@ export default function Dashboard({ user, onLogout }) {
         <nav className="sidebar-nav" aria-label="Secciones">
           <span className="nav-heading">PLATAFORMA</span>
           {PAGES.map((item) => (
-            <button key={item.id} type="button" title={item.title}
+            <button key={item.id} type="button" title={item.title} aria-label={item.title}
               className={`nav-item${page === item.id ? ' selected' : ''}`}
               aria-current={page === item.id ? 'page' : undefined}
               onClick={() => elegirPagina(item.id)}>
@@ -116,13 +161,13 @@ export default function Dashboard({ user, onLogout }) {
             <span className="sidebar-user-info"><strong>{user.nombreCompleto || user.usuario}</strong><small>{user.rol}</small></span>
           </div>
           <button type="button" className="nav-item sidebar-logout" onClick={onLogout}
-            title="Cerrar sesión"><span className="nav-icon" aria-hidden="true">↪</span><span className="nav-label">Cerrar sesión</span></button>
+            title="Cerrar sesión" aria-label="Cerrar sesión"><span className="nav-icon" aria-hidden="true">↪</span><span className="nav-label">Cerrar sesión</span></button>
         </div>
       </aside>
 
       <div className="app-content">
         <header className="app-topbar">
-          <button className="mobile-menu-toggle" type="button" aria-label="Abrir navegación"
+          <button ref={menuRef} className="mobile-menu-toggle" type="button" aria-label="Abrir navegación"
             aria-expanded={mobileMenu} onClick={() => setMobileMenu(true)}>☰</button>
           <div className="topbar-location"><span>MONITOREO HÍDRICO</span><strong>{activa.title}</strong></div>
           <div className="topbar-actions">
@@ -134,8 +179,8 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </header>
 
-        <main className="app-main" id="main-content">
-          <div className="page-heading">
+        <main ref={mainRef} tabIndex={-1} className="app-main" id="main-content">
+          <div className="page-heading" key={page}>
             <div><span className="eyebrow">DEEPTRACK YAQUI</span>
               <h1>{activa.title}</h1><p>{activa.subtitle}</p></div>
             {page === 'mapa' && canManage && (
@@ -144,19 +189,20 @@ export default function Dashboard({ user, onLogout }) {
             )}
           </div>
 
+          {page !== 'configuracion' && <div className="refresh-row"><span role="status">{loading ? 'Actualizando sondas…' : lastUpdate ? `Sondas: última consulta ${lastUpdate.toLocaleTimeString('es-MX')}${loadError ? ' (datos anteriores)' : ''}` : 'Sin datos cargados'}</span><button type="button" className="btn-small" disabled={loading} onClick={cargar}>↻ Actualizar datos</button></div>}
           {loadError && <div className="error-msg banner" role="alert">
             No se pudieron cargar las sondas: {loadError}. ¿Está funcionando el backend?
-            <button type="button" className="btn-small" onClick={cargar}>Reintentar</button>
+            <button type="button" className="btn-small" disabled={loading} onClick={cargar}>Reintentar</button>
           </div>}
 
           {page === 'inicio' && (
             <>
               <div className="overview-cards">
-                <div className="overview-card"><span>Sondas registradas</span><strong>{sondas.length}</strong><small>Dispositivos en el sistema</small></div>
-                <div className="overview-card"><span>Sondas activas</span><strong>{activas}</strong><small>Disponibles para monitoreo</small></div>
-                <div className="overview-card"><span>Alertas de profundidad</span><strong>{alertas}</strong><small>Según umbral de desarrollo</small></div>
+                <div className="overview-card"><span>Sondas registradas</span><strong>{lastUpdate ? sondas.length : '—'}</strong><small>Dispositivos en el sistema</small></div>
+                <div className="overview-card"><span>Sondas activas</span><strong>{lastUpdate ? activas : '—'}</strong><small>Disponibles para monitoreo</small></div>
+                <div className="overview-card"><span>Alertas de profundidad</span><strong>{lastUpdate ? alertas : '—'}</strong><small>Según umbral de desarrollo</small></div>
               </div>
-              <ValleSummary />
+              <ValleSummary revision={revision} />
               <div className="section-heading"><h2>Mapa y sondas</h2>
                 <button className="btn-small" type="button" onClick={() => elegirPagina('mapa')}>Abrir mapa completo ›</button>
               </div>
@@ -168,12 +214,12 @@ export default function Dashboard({ user, onLogout }) {
 
           {page === 'estadisticas' && (
             <>
-              <ValleSummary />
-              <ValleReports mode="trend" />
+              <ValleSummary revision={revision} />
+              <ValleReports mode="trend" revision={revision} />
             </>
           )}
 
-          {page === 'reportes' && <ValleReports mode="report" />}
+          {page === 'reportes' && <ValleReports mode="report" revision={revision} />}
 
           {page === 'configuracion' && (
             <section className="settings-card">
@@ -187,6 +233,7 @@ export default function Dashboard({ user, onLogout }) {
         </main>
       </div>
 
+      {notice && <div className={`monitor-toast${notice.error ? ' toast-error' : ''}`} role={notice.error ? 'alert' : 'status'}>{notice.text}<button type="button" aria-label="Cerrar aviso" onClick={() => setNotice(null)}>×</button></div>}
       {formState && <SondaForm
         sonda={formState.sonda} onSave={handleSave} onDelete={handleDelete}
         onClose={() => setFormState(null)} />}

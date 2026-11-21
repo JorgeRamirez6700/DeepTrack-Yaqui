@@ -2,7 +2,7 @@ name: DeepTrack CI
 
 on:
   push:
-    branches: [main, "feature/**", "fix/**"]
+    branches: [main, dev]
   pull_request:
     branches: [main]
   workflow_dispatch:
