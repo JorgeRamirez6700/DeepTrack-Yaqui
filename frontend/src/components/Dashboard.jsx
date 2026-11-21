@@ -26,16 +26,22 @@ export default function Dashboard({ user, onLogout }) {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [sondas, setSondas] = useState([]);
   const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState(null);
   const [formState, setFormState] = useState(null);
   const [trendSonda, setTrendSonda] = useState(null);
 
   const cargar = useCallback(async () => {
+    setLoading(true);
     try {
       setSondas(await api.listarSondas());
       setLoadError('');
+      setLastUpdate(new Date());
+      setRevision(n => n + 1);
     } catch (err) {
       setLoadError(err.message);
-    }
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
@@ -146,17 +152,17 @@ export default function Dashboard({ user, onLogout }) {
 
           {loadError && <div className="error-msg banner" role="alert">
             No se pudieron cargar las sondas: {loadError}. ¿Está funcionando el backend?
-            <button type="button" className="btn-small" onClick={cargar}>Reintentar</button>
+            <button type="button" className="btn-small" disabled={loading} onClick={cargar}>Reintentar</button>
           </div>}
 
           {page === 'inicio' && (
             <>
               <div className="overview-cards">
-                <div className="overview-card"><span>Sondas registradas</span><strong>{sondas.length}</strong><small>Dispositivos en el sistema</small></div>
-                <div className="overview-card"><span>Sondas activas</span><strong>{activas}</strong><small>Disponibles para monitoreo</small></div>
-                <div className="overview-card"><span>Alertas de profundidad</span><strong>{alertas}</strong><small>Según umbral de desarrollo</small></div>
+                <div className="overview-card"><span>Sondas registradas</span><strong>{lastUpdate ? sondas.length : '—'}</strong><small>Dispositivos en el sistema</small></div>
+                <div className="overview-card"><span>Sondas activas</span><strong>{lastUpdate ? activas : '—'}</strong><small>Disponibles para monitoreo</small></div>
+                <div className="overview-card"><span>Alertas de profundidad</span><strong>{lastUpdate ? alertas : '—'}</strong><small>Según umbral de desarrollo</small></div>
               </div>
-              <ValleSummary />
+              <ValleSummary revision={revision} />
               <div className="section-heading"><h2>Mapa y sondas</h2>
                 <button className="btn-small" type="button" onClick={() => elegirPagina('mapa')}>Abrir mapa completo ›</button>
               </div>
@@ -168,12 +174,12 @@ export default function Dashboard({ user, onLogout }) {
 
           {page === 'estadisticas' && (
             <>
-              <ValleSummary />
-              <ValleReports mode="trend" />
+              <ValleSummary revision={revision} />
+              <ValleReports mode="trend" revision={revision} />
             </>
           )}
 
-          {page === 'reportes' && <ValleReports mode="report" />}
+          {page === 'reportes' && <ValleReports mode="report" revision={revision} />}
 
           {page === 'configuracion' && (
             <section className="settings-card">
