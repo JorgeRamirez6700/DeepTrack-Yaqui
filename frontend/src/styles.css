@@ -373,3 +373,11 @@ button:disabled { cursor: not-allowed; }
 .monitor-toast.toast-error { border-color:var(--alert); }
 .monitor-toast button { background:transparent; border:0; color:var(--ink); font-size:20px; }
 @media print { .refresh-row,.monitor-toast { display:none !important; } }
+
+/* 0.9 — navegación y accesibilidad */
+.skip-link { position:fixed; z-index:50; top:8px; left:8px; padding:10px 16px; border-radius:8px; background:var(--panel); color:var(--ink); transform:translateY(-160%); }
+.skip-link:focus { transform:translateY(0); }
+.app-main:focus { outline:none; }
+@media (prefers-reduced-motion: no-preference) { .page-heading { animation: page-enter .16s ease-out both; } @keyframes page-enter { from { opacity:.65; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } } }
+@media(max-width:820px) { .app-sidebar:not(.mobile-open) { visibility:hidden; } .app-sidebar.mobile-open { visibility:visible; } .sidebar-collapse { display:none; } }
+@media print { .skip-link { display:none !important; } }

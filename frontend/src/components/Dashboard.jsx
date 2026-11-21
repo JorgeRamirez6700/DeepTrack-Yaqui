@@ -132,7 +132,7 @@ export default function Dashboard({ user, onLogout }) {
     <div className={`app-shell${collapsed ? ' shell-collapsed' : ''}`}>
       {mobileMenu && (
         <button className="sidebar-backdrop" aria-label="Cerrar navegación"
-          onClick={() => setMobileMenu(false)} />
+          onClick={() => { setMobileMenu(false); menuRef.current?.focus(); }} />
       )}
       <a className="skip-link" href="#main-content" onClick={e => { e.preventDefault(); mainRef.current?.focus(); }}>Ir al contenido</a>
       <aside ref={sidebarRef} className={`app-sidebar${mobileMenu ? ' mobile-open' : ''}`} aria-label="Navegación principal">
@@ -180,7 +180,7 @@ export default function Dashboard({ user, onLogout }) {
         </header>
 
         <main ref={mainRef} tabIndex={-1} className="app-main" id="main-content">
-          <div className="page-heading">
+          <div className="page-heading" key={page}>
             <div><span className="eyebrow">DEEPTRACK YAQUI</span>
               <h1>{activa.title}</h1><p>{activa.subtitle}</p></div>
             {page === 'mapa' && canManage && (
