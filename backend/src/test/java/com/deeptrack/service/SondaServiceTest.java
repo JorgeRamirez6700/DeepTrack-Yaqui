@@ -123,7 +123,7 @@ class SondaServiceTest {
         service.eliminar("SN-RET");
         assertEquals("RETIRADA", s.getEstado());
         verify(sondaRepository).save(s);
-        org.mockito.Mockito.verify(lecturaRepository, org.mockito.Mockito.never()).deleteByIdSonda(any());
+        org.mockito.Mockito.verifyNoInteractions(lecturaRepository);
         org.mockito.Mockito.verify(sondaRepository, org.mockito.Mockito.never()).deleteById(any());
     }
 
@@ -177,7 +177,7 @@ class SondaServiceTest {
             .thenReturn(Optional.of(new Lectura("SN-RET", 12.0, LocalDateTime.now().minusDays(2))));
         var req = new com.deeptrack.dto.SondaRequest("SN-RET", "B3", 27.35, -110.02, "ACTIVA", null);
         assertEquals("ACTIVA", service.actualizar("SN-RET", req).estado());
-        org.mockito.Mockito.verify(lecturaRepository, org.mockito.Mockito.never()).deleteByIdSonda(any());
+        org.mockito.Mockito.verify(lecturaRepository, org.mockito.Mockito.never()).deleteById(any());
     }
 
 }

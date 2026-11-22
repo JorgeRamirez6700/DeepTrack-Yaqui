@@ -391,3 +391,7 @@ button:disabled { cursor: not-allowed; }
 .users-panel .report-table td:last-child { white-space:nowrap; }
 .users-panel .report-table-wrap { overflow-x:auto; }
 .users-note { color:var(--text-secondary); font-size:12px; margin:10px 0; }
+
+/* 0.11: retiro lógico y consultas históricas */
+.sonda-row .badge.unknown { background:var(--surface-2); color:var(--text-secondary); }
+.sonda-row .row-actions .danger { color:var(--alert); }

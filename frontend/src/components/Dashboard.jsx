@@ -95,11 +95,11 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm(`¿Eliminar permanentemente la sonda ${id} y sus lecturas?`)) return;
+    if (!window.confirm(`¿Retirar la sonda ${id}? Su información y sus lecturas históricas se conservarán. Podrás reactivarla desde Editar.`)) return;
     try {
       await api.eliminarSonda(id);
       setFormState(null);
-      setNotice({ text: 'Sonda eliminada correctamente', error: false });
+      setNotice({ text: 'Sonda retirada. Su historial permanece disponible.', error: false });
       await cargar();
     } catch (err) {
       setNotice({ text: err.message, error: true });

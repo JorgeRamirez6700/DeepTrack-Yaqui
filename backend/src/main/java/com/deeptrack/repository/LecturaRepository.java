@@ -19,5 +19,4 @@ public interface LecturaRepository extends JpaRepository<Lectura, Long> {
     List<Lectura> findByFechaHoraGreaterThanEqualAndFechaHoraLessThanOrderByFechaHoraAsc(
             LocalDateTime inicio, LocalDateTime fin);
 
-    void deleteByIdSonda(String idSonda);
 }

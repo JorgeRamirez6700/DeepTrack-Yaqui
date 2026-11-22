@@ -11,7 +11,7 @@ export default function SondaForm({ sonda, onSave, onDelete, onClose }) {
     estado: sonda?.estado ?? 'ACTIVA',
     latitud: sonda?.latitud ?? '',
     longitud: sonda?.longitud ?? '',
-    profundidadActual: sonda?.profundidadActual ?? '',
+    profundidadActual: sonda?.estado === 'ACTIVA' ? (sonda.profundidadActual ?? '') : '',
   });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -30,7 +30,7 @@ export default function SondaForm({ sonda, onSave, onDelete, onClose }) {
           estado: form.estado,
           latitud: parseFloat(form.latitud),
           longitud: parseFloat(form.longitud),
-          profundidadActual: form.profundidadActual === '' ? null : parseFloat(form.profundidadActual),
+          profundidadActual: form.estado !== 'ACTIVA' || form.profundidadActual === '' ? null : parseFloat(form.profundidadActual),
         },
         editing ? sonda.idSonda : null
       );
@@ -66,6 +66,7 @@ export default function SondaForm({ sonda, onSave, onDelete, onClose }) {
                 <option>ACTIVA</option>
                 <option>INACTIVA</option>
                 <option>MANTENIMIENTO</option>
+                <option>RETIRADA</option>
               </select>
             </div>
           </div>
@@ -81,8 +82,10 @@ export default function SondaForm({ sonda, onSave, onDelete, onClose }) {
           </div>
           <div className="field">
             <label htmlFor="s-prof">Profundidad actual (m)</label>
-            <input id="s-prof" type="number" step="0.1" value={form.profundidadActual} onChange={set('profundidadActual')} placeholder="12.4" />
+            <input id="s-prof" disabled={form.estado !== 'ACTIVA'} min={0} type="number" step="0.1" value={form.profundidadActual} onChange={set('profundidadActual')} placeholder="12.4" />
           </div>
+
+          {form.estado !== 'ACTIVA' && <p className="users-note">Las sondas no activas conservan sus lecturas, pero no admiten nuevas mediciones. Para reactivar una sonda retirada selecciona ACTIVA y guarda.</p>}
 
           <div className="form-actions">
             <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
@@ -91,9 +94,9 @@ export default function SondaForm({ sonda, onSave, onDelete, onClose }) {
             </button>
           </div>
 
-          {editing && (
+          {editing && sonda.estado !== 'RETIRADA' && (
             <button type="button" className="delete-link" onClick={() => onDelete(sonda.idSonda)}>
-              Eliminar esta sonda
+              Retirar esta sonda (conservar historial)
             </button>
           )}
         </form>

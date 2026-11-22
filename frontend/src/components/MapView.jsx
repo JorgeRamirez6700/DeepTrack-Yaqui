@@ -35,7 +35,7 @@ function LoadedMap({ sondas, onSelect }) {
   const icon = (sonda) => ({
     path: window.google.maps.SymbolPath.CIRCLE,
     scale: 9,
-    fillColor: sonda.enAlerta ? '#B5502E' : sonda.profundidadActual == null ? '#81939b' : '#2E6E7E',
+    fillColor: sonda.estado !== 'ACTIVA' ? '#81939b' : sonda.enAlerta ? '#B5502E' : sonda.profundidadActual == null ? '#81939b' : '#2E6E7E',
     fillOpacity: 1,
     strokeColor: '#FFFFFF',
     strokeWeight: 2,
@@ -76,7 +76,7 @@ function LoadedMap({ sondas, onSelect }) {
             <strong>{hover.idSonda}</strong>
             <div>Cuadrante: {hover.cuadrante}</div>
             <div>Profundidad: {hover.profundidadActual ?? '—'} m</div>
-            <div>Estado: {hover.enAlerta ? 'Alerta — umbral superado' : hover.profundidadActual == null ? 'Sin datos' : 'Normal'}</div>
+            <div>Estado: {hover.estado !== 'ACTIVA' ? hover.estado : hover.enAlerta ? 'Alerta — umbral superado' : hover.profundidadActual == null ? 'Sin datos' : 'Normal'}</div>
           </div>
         </InfoWindow>
       )}
