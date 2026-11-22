@@ -6,6 +6,7 @@ import SondaForm from './SondaForm.jsx';
 import TrendModal from './TrendModal.jsx';
 import ValleSummary from './ValleSummary.jsx';
 import ValleReports from './ValleReports.jsx';
+import UsuariosPanel from './UsuariosPanel.jsx';
 import { ThemeSelector } from './ThemeProvider.jsx';
 
 const PAGES = [
@@ -18,7 +19,8 @@ const PAGES = [
 
 export default function Dashboard({ user, onLogout }) {
   const canManage = ['ADMINISTRADOR', 'ANALISTA'].includes(user.rol);
-  const [page, setPage] = useState(() => PAGES.some(p => p.id === location.hash.slice(1)) ? location.hash.slice(1) : 'inicio');
+  const pages = PAGES.concat(user.rol === 'ADMINISTRADOR' ? [{ id:'usuarios', icon:'♙', title:'Usuarios', subtitle:'Administración de cuentas y permisos' }] : []);
+  const [page, setPage] = useState(() => pages.some(p => p.id === location.hash.slice(1)) ? location.hash.slice(1) : 'inicio');
   const mainRef = useRef(null);
   const menuRef = useRef(null);
   const sidebarRef = useRef(null);
@@ -61,12 +63,12 @@ export default function Dashboard({ user, onLogout }) {
   useEffect(() => {
     const onHash = () => {
       const target = location.hash.slice(1);
-      setPage(PAGES.some(p => p.id === target) ? target : 'inicio');
+      setPage(pages.some(p => p.id === target) ? target : 'inicio');
       setMobileMenu(false);
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
-  }, []);
+  }, [user.rol]);
   useEffect(() => {
     if (!mobileMenu) return;
     sidebarRef.current?.querySelector('nav button')?.focus();
@@ -104,7 +106,7 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  const activa = PAGES.find((item) => item.id === page);
+  const activa = pages.find((item) => item.id === page) || pages[0];
   const activas = sondas.filter((s) => s.estado === 'ACTIVA').length;
   const alertas = sondas.filter((s) => s.enAlerta).length;
   const visible = sondas.filter(s => {
@@ -145,7 +147,7 @@ export default function Dashboard({ user, onLogout }) {
         </div>
         <nav className="sidebar-nav" aria-label="Secciones">
           <span className="nav-heading">PLATAFORMA</span>
-          {PAGES.map((item) => (
+          {pages.map((item) => (
             <button key={item.id} type="button" title={item.title} aria-label={item.title}
               className={`nav-item${page === item.id ? ' selected' : ''}`}
               aria-current={page === item.id ? 'page' : undefined}
@@ -189,7 +191,7 @@ export default function Dashboard({ user, onLogout }) {
             )}
           </div>
 
-          {page !== 'configuracion' && <div className="refresh-row"><span role="status">{loading ? 'Actualizando sondas…' : lastUpdate ? `Sondas: última consulta ${lastUpdate.toLocaleTimeString('es-MX')}${loadError ? ' (datos anteriores)' : ''}` : 'Sin datos cargados'}</span><button type="button" className="btn-small" disabled={loading} onClick={cargar}>↻ Actualizar datos</button></div>}
+          {!['configuracion','usuarios'].includes(page) && <div className="refresh-row"><span role="status">{loading ? 'Actualizando sondas…' : lastUpdate ? `Sondas: última consulta ${lastUpdate.toLocaleTimeString('es-MX')}${loadError ? ' (datos anteriores)' : ''}` : 'Sin datos cargados'}</span><button type="button" className="btn-small" disabled={loading} onClick={cargar}>↻ Actualizar datos</button></div>}
           {loadError && <div className="error-msg banner" role="alert">
             No se pudieron cargar las sondas: {loadError}. ¿Está funcionando el backend?
             <button type="button" className="btn-small" disabled={loading} onClick={cargar}>Reintentar</button>
@@ -221,6 +223,7 @@ export default function Dashboard({ user, onLogout }) {
 
           {page === 'reportes' && <ValleReports mode="report" revision={revision} />}
 
+          {page === 'usuarios' && user.rol === 'ADMINISTRADOR' && <UsuariosPanel currentUser={user.usuario} />}
           {page === 'configuracion' && (
             <section className="settings-card">
               <div className="settings-icon" aria-hidden="true">◐</div>
