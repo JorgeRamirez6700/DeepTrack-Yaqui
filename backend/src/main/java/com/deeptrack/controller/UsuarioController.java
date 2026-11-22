@@ -1,6 +1,9 @@
 package com.deeptrack.controller;
 
 import com.deeptrack.dto.UsuarioDTO;
+import com.deeptrack.dto.UsuarioUpdateRequest;
+import com.deeptrack.dto.LoginResponse;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.deeptrack.dto.UsuarioRequest;
 import com.deeptrack.service.UsuarioService;
 import jakarta.validation.Valid;
@@ -9,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/** PENDIENTE: restringir a rol ADMINISTRADOR cuando exista autenticación real (RNF-03). */
+/** Gestión de cuentas: acceso restringido por Spring Security a ADMINISTRADOR. */
 @RestController
 @RequestMapping("/api/usuarios")
 public class UsuarioController {
@@ -29,5 +32,10 @@ public class UsuarioController {
     @ResponseStatus(HttpStatus.CREATED)
     public UsuarioDTO crear(@Valid @RequestBody UsuarioRequest req) {
         return usuarioService.crear(req);
+    }
+    @PutMapping("/{id}")
+    public UsuarioDTO actualizar(@PathVariable Long id, @Valid @RequestBody UsuarioUpdateRequest req,
+                                  @AuthenticationPrincipal LoginResponse actor) {
+        return usuarioService.actualizar(id, req, actor.usuario());
     }
 }

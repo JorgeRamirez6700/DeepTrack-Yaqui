@@ -1,6 +1,9 @@
 package com.deeptrack.service;
 
 import com.deeptrack.dto.UsuarioDTO;
+import com.deeptrack.dto.UsuarioUpdateRequest;
+import org.springframework.transaction.annotation.Transactional;
+import java.nio.charset.StandardCharsets;
 import com.deeptrack.dto.UsuarioRequest;
 import com.deeptrack.exception.ApiException;
 import com.deeptrack.model.Usuario;
@@ -26,16 +29,34 @@ public class UsuarioService {
     }
 
     /** HU-13 / RF-07: alta de usuario (la contraseña se guarda con hash BCrypt). */
+    @Transactional
     public UsuarioDTO crear(UsuarioRequest req) {
-        if (usuarioRepository.existsByUsuarioLogin(req.usuarioLogin())) {
+        String login = req.usuarioLogin().trim();
+        if (req.password().getBytes(StandardCharsets.UTF_8).length > 72)
+            throw ApiException.badRequest("La contraseña supera 72 bytes UTF-8");
+        if (usuarioRepository.existsByUsuarioLogin(login)) {
             throw ApiException.conflict("Ya existe el usuario " + req.usuarioLogin());
         }
         Usuario u = new Usuario();
         u.setNombreCompleto(req.nombreCompleto().trim());
-        u.setUsuarioLogin(req.usuarioLogin().trim());
+        u.setUsuarioLogin(login);
         u.setPasswordHash(passwordEncoder.encode(req.password()));
         u.setRol(req.rol() == null ? "CONSULTA" : req.rol());
         u.setEstado("ACTIVO");
+        return toDto(usuarioRepository.save(u));
+    }
+
+    @Transactional
+    public UsuarioDTO actualizar(Long id, UsuarioUpdateRequest req, String actor) {
+        Usuario u = usuarioRepository.findById(id)
+            .orElseThrow(() -> ApiException.notFound("Usuario no encontrado"));
+        if (u.getUsuarioLogin().equals(actor)
+                && (!"ADMINISTRADOR".equals(req.rol()) || !"ACTIVO".equals(req.estado()))) {
+            throw ApiException.conflict("No puedes desactivar tu cuenta ni retirar tu propio rol de administrador");
+        }
+        u.setNombreCompleto(req.nombreCompleto().trim());
+        u.setRol(req.rol());
+        u.setEstado(req.estado());
         return toDto(usuarioRepository.save(u));
     }
 
