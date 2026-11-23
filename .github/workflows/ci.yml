@@ -45,5 +45,7 @@ jobs:
           node-version: '20'
       - name: Instalar dependencias
         run: npm install --no-audit --no-fund
+      - name: Pruebas frontend
+        run: npm test
       - name: Compilar frontend
         run: npm run build
