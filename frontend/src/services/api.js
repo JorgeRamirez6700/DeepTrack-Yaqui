@@ -50,5 +50,7 @@ export const api = {
   eliminarSonda: (id) => request(`/sondas/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   historico: (id, rango) =>
     request(`/sondas/${encodeURIComponent(id)}/historico?rango=${encodeURIComponent(rango)}`),
+  listarUsuarios: () => request('/usuarios'),
+  actualizarUsuario: (id, data) => request(`/usuarios/${encodeURIComponent(id)}`, { method:'PUT', body:JSON.stringify(data) }),
   crearUsuario: (data) => request('/usuarios', { method: 'POST', body: JSON.stringify(data) }),
 };

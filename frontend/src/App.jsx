@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import LoginForm from './components/LoginForm.jsx';
-import Dashboard from './components/Dashboard.jsx';
+const Dashboard = lazy(() => import('./components/Dashboard.jsx'));
 import { api } from './services/api.js';
 
 export default function App() {
@@ -36,6 +36,6 @@ export default function App() {
 
   if (checking) return <div className="login-screen"><main className="login-form-wrap">Verificando sesión…</main></div>;
   return user
-    ? <Dashboard user={user} onLogout={handleLogout} />
+    ? <Suspense fallback={<div className="app-loading" role="status">Preparando el panel de monitoreo…</div>}><Dashboard user={user} onLogout={handleLogout} /></Suspense>
     : <LoginForm onLogin={setUser} />;
 }

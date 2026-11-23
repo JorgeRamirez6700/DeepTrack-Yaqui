@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { useTheme } from './ThemeProvider.jsx';
 import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from '@react-google-maps/api';
 
@@ -6,7 +6,7 @@ import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from '@react-google-map
 const CENTER = { lat: 27.32, lng: -109.95 };
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-export default function MapView({ sondas, onSelect }) {
+function MapView({ sondas, onSelect }) {
   return (
     <div className="map-wrap">
       {API_KEY ? (
@@ -23,18 +23,33 @@ export default function MapView({ sondas, onSelect }) {
   );
 }
 
+export default memo(MapView);
+
 function LoadedMap({ sondas, onSelect }) {
   const { theme } = useTheme();
   const { isLoaded, loadError } = useJsApiLoader({ googleMapsApiKey: API_KEY });
-  const [hover, setHover] = useState(null);
+  const [hoverId, setHover] = useState(null);
+  const hover = sondas.find(s => s.idSonda === hoverId);
 
   if (loadError) return <div className="map-placeholder">No se pudo cargar Google Maps.</div>;
   if (!isLoaded) return <div className="map-placeholder">Cargando mapa…</div>;
 
-  const icon = (enAlerta) => ({
+  const mapOptions = useMemo(() => ({
+    mapTypeId: 'roadmap', streetViewControl: false, fullscreenControl: false,
+    styles: theme === 'dark' ? [
+      { elementType: 'geometry', stylers: [{ color: '#26343f' }] },
+      { elementType: 'labels.text.fill', stylers: [{ color: '#c0ced2' }] },
+      { elementType: 'labels.text.stroke', stylers: [{ color: '#25333d' }] },
+      { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#345e72' }] },
+      { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#42525c' }] },
+      { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+    ] : [],
+  }), [theme]);
+
+  const icon = (sonda) => ({
     path: window.google.maps.SymbolPath.CIRCLE,
     scale: 9,
-    fillColor: enAlerta ? '#B5502E' : '#2E6E7E',
+    fillColor: sonda.estado !== 'ACTIVA' ? '#81939b' : sonda.enAlerta ? '#B5502E' : sonda.profundidadActual == null ? '#81939b' : '#2E6E7E',
     fillOpacity: 1,
     strokeColor: '#FFFFFF',
     strokeWeight: 2,
@@ -45,24 +60,15 @@ function LoadedMap({ sondas, onSelect }) {
       mapContainerClassName="gmap"
       center={CENTER}
       zoom={10}
-      options={{
-        mapTypeId: 'roadmap', streetViewControl: false, fullscreenControl: false,
-        styles: theme === 'dark' ? [
-          { elementType: 'geometry', stylers: [{ color: '#26343f' }] },
-          { elementType: 'labels.text.fill', stylers: [{ color: '#c0ced2' }] },
-          { elementType: 'labels.text.stroke', stylers: [{ color: '#25333d' }] },
-          { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#345e72' }] },
-          { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#42525c' }] },
-          { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-        ] : [],
-      }}
+      options={mapOptions}
     >
       {sondas.map((s) => (
         <Marker
           key={s.idSonda}
           position={{ lat: s.latitud, lng: s.longitud }}
-          icon={icon(s.enAlerta)}
-          onMouseOver={() => setHover(s)}
+          icon={icon(s)}
+          title={s.idSonda}
+          onMouseOver={() => setHover(s.idSonda)}
           onMouseOut={() => setHover(null)}
           onClick={() => onSelect(s)}
         />
@@ -74,7 +80,7 @@ function LoadedMap({ sondas, onSelect }) {
             <strong>{hover.idSonda}</strong>
             <div>Cuadrante: {hover.cuadrante}</div>
             <div>Profundidad: {hover.profundidadActual ?? '—'} m</div>
-            <div>Estado: {hover.enAlerta ? 'Alerta — nivel crítico' : 'Normal'}</div>
+            <div>Estado: {hover.estado !== 'ACTIVA' ? hover.estado : hover.enAlerta ? 'Alerta — umbral superado' : hover.profundidadActual == null ? 'Sin datos' : 'Normal'}</div>
           </div>
         </InfoWindow>
       )}

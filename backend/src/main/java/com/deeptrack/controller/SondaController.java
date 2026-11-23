@@ -41,6 +41,7 @@ public class SondaController {
         return sondaService.actualizar(id, req);
     }
 
+    /** Retiro lógico (204); no se borra el histórico. Reactivar mediante PUT estado ACTIVA. */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable String id) {

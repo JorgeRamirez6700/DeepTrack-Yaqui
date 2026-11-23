@@ -9,7 +9,7 @@ const RANGOS = [
 
 const fmt = (n) => n == null ? 'Sin datos' : `${n.toFixed(2)} m`;
 
-export default function ValleSummary() {
+export default function ValleSummary({ revision = 0 }) {
   const [periodo, setPeriodo] = useState('mes');
   const [resumen, setResumen] = useState(null);
   const [error, setError] = useState('');
@@ -24,7 +24,7 @@ export default function ValleSummary() {
       .catch((err) => { if (activo) { setError(err.message); setResumen(null); } })
       .finally(() => { if (activo) setCargando(false); });
     return () => { activo = false; };
-  }, [periodo]);
+  }, [periodo, revision]);
 
   return (
     <section className="valle-summary" aria-label="Resumen estadístico del Valle del Yaqui">

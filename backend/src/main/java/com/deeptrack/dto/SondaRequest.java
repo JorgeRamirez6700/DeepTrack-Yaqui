@@ -13,7 +13,7 @@ public record SondaRequest(
         @NotBlank(message = "El cuadrante es obligatorio") @Size(max = 10) String cuadrante,
         @NotNull(message = "La latitud es obligatoria") @DecimalMin("-90.0") @DecimalMax("90.0") Double latitud,
         @NotNull(message = "La longitud es obligatoria") @DecimalMin("-180.0") @DecimalMax("180.0") Double longitud,
-        @Pattern(regexp = "ACTIVA|INACTIVA|MANTENIMIENTO", message = "Estado inválido")
+        @Pattern(regexp = "ACTIVA|INACTIVA|MANTENIMIENTO|RETIRADA", message = "Estado inválido")
         String estado,
         /** Opcional: si viene, se registra como nueva lectura. */
         Double profundidadActual

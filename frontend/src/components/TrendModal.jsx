@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useDialog } from './useDialog.js';
+import { useEffect, useRef, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api } from '../services/api.js';
 import { useTheme } from './ThemeProvider.jsx';
@@ -20,6 +21,8 @@ const fmtFecha = (iso, rango) => {
 
 export default function TrendModal({ sonda, onClose }) {
   const { theme } = useTheme();
+  const dialogRef = useRef(null);
+  useDialog(dialogRef, onClose);
   const [rango, setRango] = useState('mes');
   const [datos, setDatos] = useState([]);
   const [estado, setEstado] = useState('cargando'); // cargando | ok | error
@@ -43,10 +46,10 @@ export default function TrendModal({ sonda, onClose }) {
 
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
+      <div ref={dialogRef} className="modal" role="dialog" aria-modal="true" aria-labelledby="trend-title" tabIndex={-1}>
         <div className="modal-head">
           <div>
-            <h3>Sonda {sonda.idSonda}</h3>
+            <h3 id="trend-title">Sonda {sonda.idSonda}</h3>
             <div className="cuadrante">
               Cuadrante {sonda.cuadrante} — última lectura: {sonda.profundidadActual ?? '—'} m
             </div>
@@ -56,7 +59,7 @@ export default function TrendModal({ sonda, onClose }) {
 
         <div className="range-group">
           {RANGOS.map((r) => (
-            <button key={r.id} className={`range-btn ${rango === r.id ? 'active' : ''}`} onClick={() => setRango(r.id)}>
+            <button key={r.id} className={`range-btn ${rango === r.id ? 'active' : ''}`} aria-pressed={rango === r.id} onClick={() => setRango(r.id)}>
               {r.label}
             </button>
           ))}

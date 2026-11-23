@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useDialog } from './useDialog.js';
+import { useRef, useState } from 'react';
 
 export default function SondaForm({ sonda, onSave, onDelete, onClose }) {
   const editing = Boolean(sonda);
+  const dialogRef = useRef(null);
+  useDialog(dialogRef, onClose);
   const [form, setForm] = useState({
     idSonda: sonda?.idSonda ?? '',
     cuadrante: sonda?.cuadrante ?? '',
     estado: sonda?.estado ?? 'ACTIVA',
     latitud: sonda?.latitud ?? '',
     longitud: sonda?.longitud ?? '',
-    profundidadActual: sonda?.profundidadActual ?? '',
+    profundidadActual: sonda?.estado === 'ACTIVA' ? (sonda.profundidadActual ?? '') : '',
   });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -27,7 +30,7 @@ export default function SondaForm({ sonda, onSave, onDelete, onClose }) {
           estado: form.estado,
           latitud: parseFloat(form.latitud),
           longitud: parseFloat(form.longitud),
-          profundidadActual: form.profundidadActual === '' ? null : parseFloat(form.profundidadActual),
+          profundidadActual: form.estado !== 'ACTIVA' || form.profundidadActual === '' ? null : parseFloat(form.profundidadActual),
         },
         editing ? sonda.idSonda : null
       );
@@ -39,9 +42,9 @@ export default function SondaForm({ sonda, onSave, onDelete, onClose }) {
 
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal narrow">
+      <div ref={dialogRef} className="modal narrow" role="dialog" aria-modal="true" aria-labelledby="form-title" tabIndex={-1}>
         <div className="modal-head">
-          <h3>{editing ? 'Editar sonda' : 'Nueva sonda'}</h3>
+          <h3 id="form-title">{editing ? 'Editar sonda' : 'Nueva sonda'}</h3>
           <button className="modal-close" onClick={onClose} aria-label="Cerrar">✕</button>
         </div>
 
@@ -50,12 +53,12 @@ export default function SondaForm({ sonda, onSave, onDelete, onClose }) {
 
           <div className="field">
             <label htmlFor="s-id">ID de sonda</label>
-            <input id="s-id" value={form.idSonda} onChange={set('idSonda')} disabled={editing} placeholder="SN-YQ-120" />
+            <input id="s-id" required maxLength={20} value={form.idSonda} onChange={set('idSonda')} disabled={editing} placeholder="SN-YQ-120" />
           </div>
           <div className="form-row">
             <div className="field">
               <label htmlFor="s-cuadrante">Cuadrante</label>
-              <input id="s-cuadrante" value={form.cuadrante} onChange={set('cuadrante')} placeholder="B2" />
+              <input id="s-cuadrante" required maxLength={10} value={form.cuadrante} onChange={set('cuadrante')} placeholder="B2" />
             </div>
             <div className="field">
               <label htmlFor="s-estado">Estado</label>
@@ -63,23 +66,26 @@ export default function SondaForm({ sonda, onSave, onDelete, onClose }) {
                 <option>ACTIVA</option>
                 <option>INACTIVA</option>
                 <option>MANTENIMIENTO</option>
+                <option>RETIRADA</option>
               </select>
             </div>
           </div>
           <div className="form-row">
             <div className="field">
               <label htmlFor="s-lat">Latitud</label>
-              <input id="s-lat" type="number" step="any" value={form.latitud} onChange={set('latitud')} placeholder="27.35" />
+              <input id="s-lat" required min={-90} max={90} type="number" step="any" value={form.latitud} onChange={set('latitud')} placeholder="27.35" />
             </div>
             <div className="field">
               <label htmlFor="s-lng">Longitud</label>
-              <input id="s-lng" type="number" step="any" value={form.longitud} onChange={set('longitud')} placeholder="-109.95" />
+              <input id="s-lng" required min={-180} max={180} type="number" step="any" value={form.longitud} onChange={set('longitud')} placeholder="-109.95" />
             </div>
           </div>
           <div className="field">
             <label htmlFor="s-prof">Profundidad actual (m)</label>
-            <input id="s-prof" type="number" step="0.1" value={form.profundidadActual} onChange={set('profundidadActual')} placeholder="12.4" />
+            <input id="s-prof" disabled={form.estado !== 'ACTIVA'} min={0} type="number" step="0.1" value={form.profundidadActual} onChange={set('profundidadActual')} placeholder="12.4" />
           </div>
+
+          {form.estado !== 'ACTIVA' && <p className="users-note">Las sondas no activas conservan sus lecturas, pero no admiten nuevas mediciones. Para reactivar una sonda retirada selecciona ACTIVA y guarda.</p>}
 
           <div className="form-actions">
             <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
@@ -88,9 +94,9 @@ export default function SondaForm({ sonda, onSave, onDelete, onClose }) {
             </button>
           </div>
 
-          {editing && (
+          {editing && sonda.estado !== 'RETIRADA' && (
             <button type="button" className="delete-link" onClick={() => onDelete(sonda.idSonda)}>
-              Eliminar esta sonda
+              Retirar esta sonda (conservar historial)
             </button>
           )}
         </form>

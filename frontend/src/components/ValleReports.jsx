@@ -39,7 +39,7 @@ function exportarCsv(datos) {
   URL.revokeObjectURL(url);
 }
 
-export default function ValleReports({ mode = 'all' }) {
+export default function ValleReports({ mode = 'all', revision = 0 }) {
   const { theme } = useTheme();
   const showTrend = mode === 'all' || mode === 'trend';
   const showReport = mode === 'all' || mode === 'report';
@@ -55,12 +55,13 @@ export default function ValleReports({ mode = 'all' }) {
   useEffect(() => {
     let active = true;
     setErrorTendencia('');
+    setTendencia(null);
     if (!showTrend) return () => { active = false; };
     api.tendenciaValle(meses)
       .then(d => { if (active) setTendencia(d); })
       .catch(err => { if (active) { setTendencia(null); setErrorTendencia(err.message); } });
     return () => { active = false; };
-  }, [meses, showTrend]);
+  }, [meses, showTrend, revision]);
 
   useEffect(() => {
     let active = true;
@@ -72,7 +73,7 @@ export default function ValleReports({ mode = 'all' }) {
       .catch(err => { if (active) { setReporte(null); setErrorReporte(err.message); } })
       .finally(() => { if (active) setCargando(false); });
     return () => { active = false; };
-  }, [anio, mes, showReport]);
+  }, [anio, mes, showReport, revision]);
 
   const anios = Array.from({ length: now.getFullYear() - 2020 + 1 },
     (_, i) => now.getFullYear() - i);

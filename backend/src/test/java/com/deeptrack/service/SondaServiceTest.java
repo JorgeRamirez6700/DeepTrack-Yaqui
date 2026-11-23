@@ -50,8 +50,7 @@ class SondaServiceTest {
     @Test
     void marcaAlertaCuandoLaProfundidadSuperaElUmbral() {
         when(sondaRepository.findAll()).thenReturn(List.of(sonda("SN-1")));
-        when(lecturaRepository.findFirstByIdSondaOrderByFechaHoraDesc("SN-1"))
-                .thenReturn(Optional.of(new Lectura("SN-1", 24.6, LocalDateTime.now())));
+        when(lecturaRepository.findUltimasPorSonda(any())).thenReturn(List.of(new Lectura("SN-1", 24.6, LocalDateTime.now())));
 
         SondaDTO dto = service.listar().get(0);
 
@@ -62,8 +61,7 @@ class SondaServiceTest {
     @Test
     void noMarcaAlertaCuandoLaProfundidadEstaBajoElUmbral() {
         when(sondaRepository.findAll()).thenReturn(List.of(sonda("SN-2")));
-        when(lecturaRepository.findFirstByIdSondaOrderByFechaHoraDesc("SN-2"))
-                .thenReturn(Optional.of(new Lectura("SN-2", 11.2, LocalDateTime.now())));
+        when(lecturaRepository.findUltimasPorSonda(any())).thenReturn(List.of(new Lectura("SN-2", 11.2, LocalDateTime.now())));
 
         assertFalse(service.listar().get(0).enAlerta());
     }
@@ -114,6 +112,91 @@ class SondaServiceTest {
         assertEquals(409, ex.getStatus().value());
         verify(sondaRepository).existsById("SN-1");
         verify(sondaRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void retiroLogicoPreservaLecturasYRegistro() {
+        Sonda s = sonda("SN-RET");
+        when(sondaRepository.findById("SN-RET")).thenReturn(Optional.of(s));
+        service.eliminar("SN-RET");
+        assertEquals("RETIRADA", s.getEstado());
+        verify(sondaRepository).save(s);
+        org.mockito.Mockito.verifyNoInteractions(lecturaRepository);
+        org.mockito.Mockito.verify(sondaRepository, org.mockito.Mockito.never()).deleteById(any());
+    }
+
+    @Test
+    void noPermiteRetirarDosVeces() {
+        Sonda s = sonda("SN-RET");
+        s.setEstado("RETIRADA");
+        when(sondaRepository.findById("SN-RET")).thenReturn(Optional.of(s));
+        assertEquals(409, assertThrows(ApiException.class,
+            () -> service.eliminar("SN-RET")).getStatus().value());
+        org.mockito.Mockito.verify(sondaRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void historicoSigueDisponibleTrasRetiro() {
+        Sonda s = sonda("SN-RET");
+        s.setEstado("RETIRADA");
+        when(sondaRepository.findById("SN-RET")).thenReturn(Optional.of(s));
+        when(lecturaRepository.findByIdSondaAndFechaHoraAfterOrderByFechaHoraAsc(eq("SN-RET"), any(LocalDateTime.class)))
+            .thenReturn(List.of(new Lectura("SN-RET", 13.5, LocalDateTime.now().minusDays(1))));
+        assertEquals(1, service.historico("SN-RET", "mes").size());
+    }
+
+    @Test
+    void sondaRetiradaNoGeneraAlertaActual() {
+        Sonda s = sonda("SN-RET");
+        s.setEstado("RETIRADA");
+        when(sondaRepository.findAll()).thenReturn(List.of(s));
+        when(lecturaRepository.findUltimasPorSonda(any())).thenReturn(List.of(new Lectura("SN-RET", 30.0, LocalDateTime.now().minusDays(2))));
+        assertFalse(service.listar().get(0).enAlerta());
+    }
+
+    @Test
+    void noRegistraNuevaLecturaEnSondaRetirada() {
+        Sonda s = sonda("SN-RET");
+        s.setEstado("RETIRADA");
+        when(sondaRepository.findById("SN-RET")).thenReturn(Optional.of(s));
+        var req = new com.deeptrack.dto.SondaRequest("SN-RET", "B3", 27.35, -110.02, "RETIRADA", 18.0);
+        assertEquals(400, assertThrows(ApiException.class,
+            () -> service.actualizar("SN-RET", req)).getStatus().value());
+        org.mockito.Mockito.verify(lecturaRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void reactivacionNoEliminaHistorial() {
+        Sonda s = sonda("SN-RET");
+        s.setEstado("RETIRADA");
+        when(sondaRepository.findById("SN-RET")).thenReturn(Optional.of(s));
+        when(lecturaRepository.findFirstByIdSondaOrderByFechaHoraDesc("SN-RET"))
+            .thenReturn(Optional.of(new Lectura("SN-RET", 12.0, LocalDateTime.now().minusDays(2))));
+        var req = new com.deeptrack.dto.SondaRequest("SN-RET", "B3", 27.35, -110.02, "ACTIVA", null);
+        assertEquals("ACTIVA", service.actualizar("SN-RET", req).estado());
+        org.mockito.Mockito.verify(lecturaRepository, org.mockito.Mockito.never()).deleteById(any());
+    }
+
+    @Test
+    void listadoVacioNoConsultaLecturas() {
+        when(sondaRepository.findAll()).thenReturn(List.of());
+        assertTrue(service.listar().isEmpty());
+        org.mockito.Mockito.verify(lecturaRepository, org.mockito.Mockito.never()).findUltimasPorSonda(any());
+    }
+
+    @Test
+    void obtieneUltimasEnUnSoloLote() {
+        when(sondaRepository.findAll()).thenReturn(List.of(sonda("A"), sonda("B"), sonda("C")));
+        when(lecturaRepository.findUltimasPorSonda(any()))
+            .thenReturn(List.of(new Lectura("A", 9.0, LocalDateTime.now()),
+                                new Lectura("B", 25.0, LocalDateTime.now())));
+        var resultado = service.listar();
+        assertEquals(3, resultado.size());
+        assertNull(resultado.get(2).profundidadActual());
+        assertTrue(resultado.get(1).enAlerta());
+        verify(lecturaRepository, org.mockito.Mockito.times(1)).findUltimasPorSonda(any());
+        org.mockito.Mockito.verify(lecturaRepository, org.mockito.Mockito.never())
+            .findFirstByIdSondaOrderByFechaHoraDesc(any());
     }
 
 }
