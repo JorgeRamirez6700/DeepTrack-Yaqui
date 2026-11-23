@@ -395,3 +395,8 @@ button:disabled { cursor: not-allowed; }
 /* 0.11: retiro lógico y consultas históricas */
 .sonda-row .badge.unknown { background:var(--surface-2); color:var(--text-secondary); }
 .sonda-row .row-actions .danger { color:var(--alert); }
+
+/* Iteración 0.12: estados de carga discretos para componentes diferidos */
+.app-loading { display:flex; align-items:center; justify-content:center; min-height:130px; border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--text-secondary); padding:22px; font-size:14px; }
+.app-loading.map-wrap { min-height:380px; height:560px; background:var(--surface-2); }
+@media(max-width:600px) { .app-loading.map-wrap { height:380px; } }

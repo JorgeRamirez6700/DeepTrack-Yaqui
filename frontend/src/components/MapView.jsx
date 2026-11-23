@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { useTheme } from './ThemeProvider.jsx';
 import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from '@react-google-maps/api';
 
@@ -6,7 +6,7 @@ import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from '@react-google-map
 const CENTER = { lat: 27.32, lng: -109.95 };
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-export default function MapView({ sondas, onSelect }) {
+function MapView({ sondas, onSelect }) {
   return (
     <div className="map-wrap">
       {API_KEY ? (
@@ -23,6 +23,8 @@ export default function MapView({ sondas, onSelect }) {
   );
 }
 
+export default memo(MapView);
+
 function LoadedMap({ sondas, onSelect }) {
   const { theme } = useTheme();
   const { isLoaded, loadError } = useJsApiLoader({ googleMapsApiKey: API_KEY });
@@ -31,6 +33,18 @@ function LoadedMap({ sondas, onSelect }) {
 
   if (loadError) return <div className="map-placeholder">No se pudo cargar Google Maps.</div>;
   if (!isLoaded) return <div className="map-placeholder">Cargando mapa…</div>;
+
+  const mapOptions = useMemo(() => ({
+    mapTypeId: 'roadmap', streetViewControl: false, fullscreenControl: false,
+    styles: theme === 'dark' ? [
+      { elementType: 'geometry', stylers: [{ color: '#26343f' }] },
+      { elementType: 'labels.text.fill', stylers: [{ color: '#c0ced2' }] },
+      { elementType: 'labels.text.stroke', stylers: [{ color: '#25333d' }] },
+      { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#345e72' }] },
+      { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#42525c' }] },
+      { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+    ] : [],
+  }), [theme]);
 
   const icon = (sonda) => ({
     path: window.google.maps.SymbolPath.CIRCLE,
@@ -46,17 +60,7 @@ function LoadedMap({ sondas, onSelect }) {
       mapContainerClassName="gmap"
       center={CENTER}
       zoom={10}
-      options={{
-        mapTypeId: 'roadmap', streetViewControl: false, fullscreenControl: false,
-        styles: theme === 'dark' ? [
-          { elementType: 'geometry', stylers: [{ color: '#26343f' }] },
-          { elementType: 'labels.text.fill', stylers: [{ color: '#c0ced2' }] },
-          { elementType: 'labels.text.stroke', stylers: [{ color: '#25333d' }] },
-          { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#345e72' }] },
-          { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#42525c' }] },
-          { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-        ] : [],
-      }}
+      options={mapOptions}
     >
       {sondas.map((s) => (
         <Marker

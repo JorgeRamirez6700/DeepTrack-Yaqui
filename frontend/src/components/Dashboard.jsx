@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api.js';
-import MapView from './MapView.jsx';
+const MapView = lazy(() => import('./MapView.jsx'));
 import SondaPanel from './SondaPanel.jsx';
 import SondaForm from './SondaForm.jsx';
-import TrendModal from './TrendModal.jsx';
+const TrendModal = lazy(() => import('./TrendModal.jsx'));
 import ValleSummary from './ValleSummary.jsx';
-import ValleReports from './ValleReports.jsx';
-import UsuariosPanel from './UsuariosPanel.jsx';
+const ValleReports = lazy(() => import('./ValleReports.jsx'));
+const UsuariosPanel = lazy(() => import('./UsuariosPanel.jsx'));
 import { ThemeSelector } from './ThemeProvider.jsx';
 
 const PAGES = [
@@ -109,14 +109,16 @@ export default function Dashboard({ user, onLogout }) {
   const activa = pages.find((item) => item.id === page) || pages[0];
   const activas = sondas.filter((s) => s.estado === 'ACTIVA').length;
   const alertas = sondas.filter((s) => s.enAlerta).length;
-  const visible = sondas.filter(s => {
+  const visible = useMemo(() => sondas.filter(s => {
     const matches = `${s.idSonda} ${s.cuadrante}`.toLowerCase().includes(query.trim().toLowerCase());
     const alertMatches = filter === 'all' || (filter === 'alert' ? s.enAlerta : !s.enAlerta && s.profundidadActual != null);
     return matches && alertMatches && (stateFilter === 'all' || s.estado === stateFilter);
-  });
+  }), [sondas, query, filter, stateFilter]);
   const mapaPanel = (
     <div className="dash-body">
-      <MapView sondas={visible} onSelect={setTrendSonda} />
+      <Suspense fallback={<div className="map-wrap app-loading" role="status">Cargando mapa…</div>}>
+        <MapView sondas={visible} onSelect={setTrendSonda} />
+      </Suspense>
       <SondaPanel
         canManage={canManage}
         sondas={visible}
@@ -217,13 +219,13 @@ export default function Dashboard({ user, onLogout }) {
           {page === 'estadisticas' && (
             <>
               <ValleSummary revision={revision} />
-              <ValleReports mode="trend" revision={revision} />
+              <Suspense fallback={<div className="app-loading" role="status">Cargando estadísticas…</div>}><ValleReports mode="trend" revision={revision} /></Suspense>
             </>
           )}
 
-          {page === 'reportes' && <ValleReports mode="report" revision={revision} />}
+          {page === 'reportes' && <Suspense fallback={<div className="app-loading" role="status">Preparando reportes…</div>}><ValleReports mode="report" revision={revision} /></Suspense>}
 
-          {page === 'usuarios' && user.rol === 'ADMINISTRADOR' && <UsuariosPanel currentUser={user.usuario} />}
+          {page === 'usuarios' && user.rol === 'ADMINISTRADOR' && <Suspense fallback={<div className="app-loading" role="status">Cargando usuarios…</div>}><UsuariosPanel currentUser={user.usuario} /></Suspense>}
           {page === 'configuracion' && (
             <section className="settings-card">
               <div className="settings-icon" aria-hidden="true">◐</div>
@@ -240,7 +242,7 @@ export default function Dashboard({ user, onLogout }) {
       {formState && <SondaForm
         sonda={formState.sonda} onSave={handleSave} onDelete={handleDelete}
         onClose={() => setFormState(null)} />}
-      {trendSonda && <TrendModal sonda={trendSonda} onClose={() => setTrendSonda(null)} />}
+      {trendSonda && <Suspense fallback={<div className="app-loading" role="status">Cargando histórico de la sonda…</div>}><TrendModal sonda={trendSonda} onClose={() => setTrendSonda(null)} /></Suspense>}
     </div>
   );
 }
