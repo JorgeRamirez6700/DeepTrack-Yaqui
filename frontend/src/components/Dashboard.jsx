@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api.js';
+import { filtrarSondas } from '../utils/filtrarSondas.js';
 const MapView = lazy(() => import('./MapView.jsx'));
 import SondaPanel from './SondaPanel.jsx';
 import SondaForm from './SondaForm.jsx';
@@ -109,11 +110,7 @@ export default function Dashboard({ user, onLogout }) {
   const activa = pages.find((item) => item.id === page) || pages[0];
   const activas = sondas.filter((s) => s.estado === 'ACTIVA').length;
   const alertas = sondas.filter((s) => s.enAlerta).length;
-  const visible = useMemo(() => sondas.filter(s => {
-    const matches = `${s.idSonda} ${s.cuadrante}`.toLowerCase().includes(query.trim().toLowerCase());
-    const alertMatches = filter === 'all' || (filter === 'alert' ? s.enAlerta : !s.enAlerta && s.profundidadActual != null);
-    return matches && alertMatches && (stateFilter === 'all' || s.estado === stateFilter);
-  }), [sondas, query, filter, stateFilter]);
+  const visible = useMemo(() => filtrarSondas(sondas, query, filter, stateFilter), [sondas, query, filter, stateFilter]);
   const mapaPanel = (
     <div className="dash-body">
       <Suspense fallback={<div className="map-wrap app-loading" role="status">Cargando mapa…</div>}>
