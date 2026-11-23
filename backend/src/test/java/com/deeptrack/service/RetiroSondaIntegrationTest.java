@@ -76,6 +76,8 @@ class RetiroSondaIntegrationTest {
         assertEquals("ACTIVA", sondas.findById(id).orElseThrow().getEstado());
         assertEquals(1L, lecturas.count());
         assertEquals(13.5, service.obtener(id).profundidadActual());
+        assertEquals(13.5, service.listar().stream()
+            .filter(d -> d.idSonda().equals(id)).findFirst().orElseThrow().profundidadActual());
         assertTrue(reportes.reporte(mes.getYear(), mes.getMonthValue()).sondas()
             .stream().anyMatch(d -> d.idSonda().equals(id)));
     }

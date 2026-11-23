@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class SondaService {
@@ -33,7 +35,14 @@ public class SondaService {
     /** RF-02 / RF-03: todas las sondas con su última lectura. */
     @Transactional(readOnly = true)
     public List<SondaDTO> listar() {
-        return sondaRepository.findAll().stream().map(this::toDto).toList();
+        List<Sonda> sondas = sondaRepository.findAll();
+        if (sondas.isEmpty()) return List.of();
+        Map<String, Double> ultimas = lecturaRepository.findUltimasPorSonda(
+                sondas.stream().map(Sonda::getIdSonda).toList()).stream()
+                .collect(Collectors.toMap(Lectura::getIdSonda, Lectura::getProfundidadM));
+        return sondas.stream()
+                .map(sonda -> toDto(sonda, ultimas.get(sonda.getIdSonda())))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -128,6 +137,10 @@ public class SondaService {
     private SondaDTO toDto(Sonda s) {
         Double actual = lecturaRepository.findFirstByIdSondaOrderByFechaHoraDesc(s.getIdSonda())
                 .map(Lectura::getProfundidadM).orElse(null);
+        return toDto(s, actual);
+    }
+
+    private SondaDTO toDto(Sonda s, Double actual) {
         boolean enAlerta = "ACTIVA".equals(s.getEstado()) && actual != null && actual > umbralAlertaMetros;
         return new SondaDTO(s.getIdSonda(), s.getCuadrante(), s.getLatitud(), s.getLongitud(),
                 s.getEstado(), actual, enAlerta);
