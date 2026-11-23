@@ -199,4 +199,16 @@ class SondaServiceTest {
             .findFirstByIdSondaOrderByFechaHoraDesc(any());
     }
 
+    /** Regresión: la API debe rechazar profundidades negativas antes de guardar lecturas. */
+    @Test
+    void validaProfundidadNegativaEnSolicitud() {
+        var solicitud = new com.deeptrack.dto.SondaRequest(
+            "SN-QA-001", "A1", 27.3, -109.9, "ACTIVA", -5.0);
+        try (var factory = jakarta.validation.Validation.buildDefaultValidatorFactory()) {
+            var errores = factory.getValidator().validate(solicitud);
+            assertFalse(errores.isEmpty(),
+                "La profundidad -5 m debe ser rechazada por validación antes de persistirse");
+        }
+    }
+
 }
