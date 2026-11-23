@@ -5,7 +5,7 @@ export function filtrarSondas(sondas, query, filter, stateFilter) {
     const matches = `${s.idSonda} ${s.cuadrante}`.toLowerCase().includes(texto);
     const alertMatches = filter === 'all' || (filter === 'alert'
       ? s.enAlerta
-      : !s.enAlerta && s.profundidadActual != null);
+      : s.estado === 'ACTIVA' && !s.enAlerta && s.profundidadActual != null);
     return matches && alertMatches && (stateFilter === 'all' || s.estado === stateFilter);
   });
 }
