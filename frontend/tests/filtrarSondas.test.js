@@ -26,3 +26,21 @@ test('filtro RETIRADA permite encontrar la sonda histórica', () => {
 test('buscador sigue funcionando con mayúsculas y cuadrantes', () => {
   assert.deepEqual(filtrarSondas(sondas, 'b2', 'all', 'all').map(s => s.idSonda), ['RET-1']);
 });
+
+test('sin datos solo incluye sondas activas sin lectura', () => {
+  assert.deepEqual(filtrarSondas(sondas, '', 'missing', 'all').map(s => s.idSonda), ['ACT-3']);
+});
+
+test('el filtro de alerta solo muestra sondas activas en alerta', () => {
+  assert.deepEqual(filtrarSondas(sondas, '', 'alert', 'all').map(s => s.idSonda), ['ACT-2']);
+});
+
+test('condición y estado se cruzan sin reclasificar retiradas', () => {
+  assert.deepEqual(filtrarSondas(sondas, '', 'normal', 'RETIRADA'), []);
+  assert.deepEqual(filtrarSondas(sondas, '', 'all', 'RETIRADA').map(s => s.idSonda), ['RET-1']);
+});
+
+test('un valor firmado negativo es un dato válido bajo condición normal', () => {
+  const negativas = [{ idSonda: 'NEG', cuadrante: 'N1', estado: 'ACTIVA', profundidadActual: -2, enAlerta: false }];
+  assert.deepEqual(filtrarSondas(negativas, '', 'normal', 'all').map(s => s.idSonda), ['NEG']);
+});

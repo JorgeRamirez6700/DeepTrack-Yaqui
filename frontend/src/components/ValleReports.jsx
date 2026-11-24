@@ -111,7 +111,7 @@ export default function ValleReports({ mode = 'all', revision = 0 }) {
             </ResponsiveContainer>
           </div>
         )}
-        <p className="valle-nota">Los meses sin lecturas aparecen sin valor. Una profundidad mayor indica un espejo de agua más profundo; no representa por sí sola el estado de todo el acuífero.</p>
+        <p className="valle-nota">Los meses sin lecturas aparecen sin valor. Las lecturas negativas se conservan si la sonda usa referencia firmada; no representan por sí solas el estado del acuífero.</p>
       </div>}
 
       {showReport && <div className="valle-report-print" id="reporte-mensual-deeptrack">
@@ -154,7 +154,7 @@ export default function ValleReports({ mode = 'all', revision = 0 }) {
                 </tr>)}</tbody>
               </table>
             </div>
-            <p className="valle-nota">Las sondas sin lecturas permanecen visibles. Los promedios son descriptivos y se calculan para cada sonda antes de consolidarlos. No representan una estimación hidrológica espacial.</p>
+            <p className="valle-nota">Las sondas sin lecturas permanecen visibles. Los valores firmados, incluidos los negativos, se incluyen en los promedios. Interprétalos solo con una referencia de medición consistente; no representan una estimación hidrológica espacial.</p>
             <div className="report-actions no-print">
               <button className="btn-small" type="button" onClick={() => exportarCsv(reporte)}>Exportar CSV (Excel)</button>
               <button className="btn-small" type="button" onClick={() => window.print()}>Imprimir / Guardar PDF</button>

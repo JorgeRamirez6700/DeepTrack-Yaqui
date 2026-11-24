@@ -81,7 +81,7 @@ export default function TrendModal({ sonda, onClose }) {
                 <CartesianGrid stroke={theme === 'dark' ? '#40505c' : '#E3EBE6'} vertical={false} />
                 <XAxis dataKey="etiqueta" tick={{ fontSize: 11, fill: theme === 'dark' ? '#adbdc5' : '#637881' }} minTickGap={24} />
                 <YAxis tick={{ fontSize: 11 }} unit=" m" />
-                <Tooltip formatter={(v) => [`${v} m`, 'Profundidad']} labelFormatter={(l) => l} />
+                <Tooltip formatter={(v) => [`${v} m`, 'Lectura']} labelFormatter={(l) => l} />
                 <Line type="monotone" dataKey="profundidadM" stroke={theme === 'dark' ? '#7ec5cd' : '#2E6E7E'} strokeWidth={2.5} dot={false} />
               </LineChart>
             </ResponsiveContainer>

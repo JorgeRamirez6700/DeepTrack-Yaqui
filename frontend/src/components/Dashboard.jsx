@@ -201,7 +201,7 @@ export default function Dashboard({ user, onLogout }) {
               <div className="overview-cards">
                 <div className="overview-card"><span>Sondas registradas</span><strong>{lastUpdate ? sondas.length : '—'}</strong><small>Dispositivos en el sistema</small></div>
                 <div className="overview-card"><span>Sondas activas</span><strong>{lastUpdate ? activas : '—'}</strong><small>Disponibles para monitoreo</small></div>
-                <div className="overview-card"><span>Alertas de profundidad</span><strong>{lastUpdate ? alertas : '—'}</strong><small>Según umbral de desarrollo</small></div>
+                <div className="overview-card"><span>Alertas de profundidad</span><strong>{lastUpdate ? alertas : '—'}</strong><small>Según umbral de desarrollo (sondas activas)</small></div>
               </div>
               <ValleSummary revision={revision} />
               <div className="section-heading"><h2>Mapa y sondas</h2>
