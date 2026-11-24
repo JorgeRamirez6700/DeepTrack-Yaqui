@@ -16,6 +16,6 @@ public record SondaRequest(
         @Pattern(regexp = "ACTIVA|INACTIVA|MANTENIMIENTO|RETIRADA", message = "Estado inválido")
         String estado,
         /** Opcional: si viene, se registra como nueva lectura. */
-        @DecimalMin(value = "0.0", message = "La profundidad no puede ser negativa")
+        // Valor firmado respecto a la referencia de medición; negativo permitido.
         Double profundidadActual
 ) { }

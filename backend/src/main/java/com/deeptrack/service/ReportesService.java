@@ -99,8 +99,7 @@ public class ReportesService {
         return lecturas.findByFechaHoraGreaterThanEqualAndFechaHoraLessThanOrderByFechaHoraAsc(
                 desde.atStartOfDay(), hasta.atStartOfDay()).stream()
             .filter(l -> idsActivos.contains(l.getIdSonda()))
-            .filter(l -> l.getProfundidadM() != null && Double.isFinite(l.getProfundidadM())
-                && l.getProfundidadM() >= 0)
+            .filter(l -> l.getProfundidadM() != null && Double.isFinite(l.getProfundidadM()))
             .toList();
     }
 
