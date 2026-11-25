@@ -31,9 +31,6 @@ function LoadedMap({ sondas, onSelect }) {
   const [hoverId, setHover] = useState(null);
   const hover = sondas.find(s => s.idSonda === hoverId);
 
-  if (loadError) return <div className="map-placeholder">No se pudo cargar Google Maps.</div>;
-  if (!isLoaded) return <div className="map-placeholder">Cargando mapa…</div>;
-
   const mapOptions = useMemo(() => ({
     mapTypeId: 'roadmap', streetViewControl: false, fullscreenControl: false,
     styles: theme === 'dark' ? [
@@ -45,6 +42,9 @@ function LoadedMap({ sondas, onSelect }) {
       { featureType: 'poi', stylers: [{ visibility: 'off' }] },
     ] : [],
   }), [theme]);
+
+  if (loadError) return <div className="map-placeholder">No se pudo cargar Google Maps.</div>;
+  if (!isLoaded) return <div className="map-placeholder">Cargando mapa…</div>;
 
   const icon = (sonda) => ({
     path: window.google.maps.SymbolPath.CIRCLE,
