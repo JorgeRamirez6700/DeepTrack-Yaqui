@@ -14,7 +14,7 @@ El campo `profundidadActual` se conserva por compatibilidad, pero una lectura ne
 - La interfaz indica que la lectura puede tener signo, habilita valores negativos y aclara que la interpretación depende de la referencia.
 - Los algoritmos actuales de alertas comparan `lectura > umbral` (20 m en desarrollo). No infieren situaciones de riesgo a partir de valores negativos, pues eso requiere criterios hidrológicos específicos.
 - **Pendiente antes de datos reales:** especificar sensor, cero de referencia, convención de signos, unidades y límites; idealmente modelar nivel relativo y profundidad bajo la superficie como magnitudes distintas.
-- Las mediciones no finitas no deben procesarse. Su validación y los límites físicos deben formalizarse al definir las especificaciones del sensor.
+- La siguiente ronda de bugfixes rechaza valores no finitos en el servicio antes de modificar datos. Los límites físicos y la convención de signos quedan pendientes de las especificaciones del sensor.
 
 ## QA
 - Reproducir manualmente ambos problemas con sondas ficticias.

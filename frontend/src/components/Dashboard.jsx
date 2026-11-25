@@ -1,6 +1,7 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api.js';
 import { filtrarSondas } from '../utils/filtrarSondas.js';
+import { crearCargaVigente } from '../utils/cargaVigente.js';
 const MapView = lazy(() => import('./MapView.jsx'));
 import SondaPanel from './SondaPanel.jsx';
 import SondaForm from './SondaForm.jsx';
@@ -43,19 +44,24 @@ export default function Dashboard({ user, onLogout }) {
   const [stateFilter, setStateFilter] = useState('all');
   useEffect(() => { if (!notice) return; const timer = setTimeout(() => setNotice(null), 4500); return () => clearTimeout(timer); }, [notice]);
 
-  const cargar = useCallback(async () => {
-    setLoading(true);
-    try {
-      setSondas(await api.listarSondas());
+  const carga = useMemo(() => crearCargaVigente({
+    consultar: api.listarSondas,
+    alInicio: () => setLoading(true),
+    alExito: datos => {
+      setSondas(datos);
       setLoadError('');
       setLastUpdate(new Date());
       setRevision(n => n + 1);
-    } catch (err) {
-      setLoadError(err.message);
-    } finally { setLoading(false); }
-  }, []);
+    },
+    alError: err => setLoadError(err.message),
+    alFinal: () => setLoading(false),
+  }), []);
+  const cargar = carga.ejecutar;
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    cargar();
+    return carga.invalidar;
+  }, [carga, cargar]);
   useEffect(() => {
     try { localStorage.setItem('deeptrack-sidebar-collapsed', String(collapsed)); }
     catch { /* almacenamiento no disponible */ }

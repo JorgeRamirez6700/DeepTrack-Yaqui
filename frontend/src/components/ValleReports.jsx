@@ -2,18 +2,12 @@ import { useEffect, useState } from 'react';
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 import { api } from '../services/api.js';
 import { useTheme } from './ThemeProvider.jsx';
+import { csvCell } from '../utils/csvCell.js';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio',
   'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const now = new Date();
 const fmt = (n) => n == null ? 'Sin datos' : `${n.toFixed(2)} m`;
-
-// Protege celdas frente a interpretacion de formulas al abrir CSV con Excel.
-function csvCell(value) {
-  let text = value == null ? '' : String(value);
-  if (/^[\s]*[=+@\-\t\r]/.test(text)) text = "'" + text;
-  return '"' + text.replace(/"/g, '""') + '"';
-}
 
 function exportarCsv(datos) {
   const filas = [

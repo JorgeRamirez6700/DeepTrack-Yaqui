@@ -53,6 +53,7 @@ public class SondaService {
     /** HU-10: alta de sonda. */
     @Transactional
     public SondaDTO crear(SondaRequest req) {
+        validarLectura(req.profundidadActual());
         String idNormalizado = req.idSonda().trim();
         if (sondaRepository.existsById(idNormalizado)) {
             throw ApiException.conflict("Ya existe una sonda con el ID " + idNormalizado);
@@ -68,6 +69,7 @@ public class SondaService {
     /** HU-11: edición de sonda. El ID no cambia. */
     @Transactional
     public SondaDTO actualizar(String idSonda, SondaRequest req) {
+        validarLectura(req.profundidadActual());
         Sonda sonda = buscar(idSonda);
         aplicarCampos(sonda, req);
         sondaRepository.save(sonda);
@@ -118,7 +120,15 @@ public class SondaService {
         sonda.setCuadrante(req.cuadrante().trim());
         sonda.setLatitud(req.latitud());
         sonda.setLongitud(req.longitud());
-        sonda.setEstado(req.estado() == null ? "ACTIVA" : req.estado());
+        // Una nueva sonda ya tiene ACTIVA por defecto en la entidad.
+        // Si se omite el estado al editar, se conserva el actual.
+        if (req.estado() != null) sonda.setEstado(req.estado());
+    }
+
+    private static void validarLectura(Double profundidad) {
+        if (profundidad != null && !Double.isFinite(profundidad)) {
+            throw ApiException.badRequest("La lectura debe ser un número finito");
+        }
     }
 
     private void registrarLecturaSiActiva(Sonda sonda, Double profundidad) {
