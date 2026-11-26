@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api.js';
-import { filtrarSondas } from '../utils/filtrarSondas.js';
+import { condicionSonda, filtrarSondas } from '../utils/filtrarSondas.js';
 import { crearCargaVigente } from '../utils/cargaVigente.js';
 const MapView = lazy(() => import('./MapView.jsx'));
 import SondaPanel from './SondaPanel.jsx';
@@ -114,8 +114,15 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const activa = pages.find((item) => item.id === page) || pages[0];
-  const activas = sondas.filter((s) => s.estado === 'ACTIVA').length;
-  const alertas = sondas.filter((s) => s.enAlerta).length;
+  const { activas, alertas } = useMemo(() => {
+    let activas = 0;
+    let alertas = 0;
+    for (const sonda of sondas) {
+      if (sonda.estado === 'ACTIVA') activas++;
+      if (condicionSonda(sonda) === 'alert') alertas++;
+    }
+    return { activas, alertas };
+  }, [sondas]);
   const visible = useMemo(() => filtrarSondas(sondas, query, filter, stateFilter), [sondas, query, filter, stateFilter]);
   const mapaPanel = (
     <div className="dash-body">

@@ -1,3 +1,10 @@
+/** Una sola regla de clasificación para mapa, filtros y listado. */
+export function condicionSonda(sonda) {
+  if (sonda.estado !== 'ACTIVA') return 'inactive';
+  if (!Number.isFinite(sonda.profundidadActual)) return 'missing';
+  return sonda.enAlerta ? 'alert' : 'normal';
+}
+
 /**
  * Los filtros son independientes:
  * estado operativo = ACTIVA / RETIRADA / INACTIVA / MANTENIMIENTO;
@@ -9,14 +16,8 @@ export function filtrarSondas(sondas, query = '', filter = 'all', stateFilter = 
   return sondas.filter(s => {
     if (!`${s.idSonda} ${s.cuadrante}`.toLocaleLowerCase('es').includes(texto)) return false;
     if (stateFilter !== 'all' && s.estado !== stateFilter) return false;
-    if (filter === 'all') return true;
-    if (s.estado !== 'ACTIVA') return false;
-    const hayDatos = s.profundidadActual != null && Number.isFinite(s.profundidadActual);
-    switch (filter) {
-      case 'normal': return hayDatos && !s.enAlerta;
-      case 'alert': return hayDatos && s.enAlerta;
-      case 'missing': return !hayDatos;
-      default: return false;
-    }
+    return filter === 'all' || (
+      filter !== 'inactive' && condicionSonda(s) === filter
+    );
   });
 }

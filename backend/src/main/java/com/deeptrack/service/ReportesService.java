@@ -96,6 +96,7 @@ public class ReportesService {
     }
 
     private List<Lectura> consultar(LocalDate desde, LocalDate hasta, Set<String> idsActivos) {
+        if (idsActivos.isEmpty()) return List.of();
         return lecturas.findByFechaHoraGreaterThanEqualAndFechaHoraLessThanOrderByFechaHoraAsc(
                 desde.atStartOfDay(), hasta.atStartOfDay()).stream()
             .filter(l -> idsActivos.contains(l.getIdSonda()))

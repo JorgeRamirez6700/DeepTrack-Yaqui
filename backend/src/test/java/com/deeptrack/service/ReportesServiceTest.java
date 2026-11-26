@@ -107,4 +107,17 @@ class ReportesServiceTest {
         TendenciaMensualDTO resultado = service.tendencia(6);
         assertEquals(-6.0, resultado.meses().get(5).profundidadMediaM());
     }
+    @Test
+    void sinActivasNoConsultaLecturasYConservaMesesVacios() {
+        when(sondas.findAll()).thenReturn(List.of(sonda("A", "RETIRADA")));
+        YearMonth mes = YearMonth.now();
+        var reporte = service.reporte(mes.getYear(), mes.getMonthValue());
+        assertEquals(0, reporte.lecturas());
+        assertTrue(reporte.sondas().isEmpty());
+        assertNull(reporte.profundidadMediaM());
+        var tendencia = service.tendencia(6);
+        assertEquals(6, tendencia.meses().size());
+        assertTrue(tendencia.meses().stream().allMatch(p -> p.profundidadMediaM() == null));
+        verifyNoInteractions(lecturas);
+    }
 }

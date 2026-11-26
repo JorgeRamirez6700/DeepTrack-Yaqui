@@ -88,4 +88,13 @@ class EstadisticasServiceTest {
         assertEquals(-1.0, resultado.profundidadMediaM());
         assertEquals(-1.0, resultado.minimaMediaPorSondaM());
     }
+    @Test
+    void sinActivasNoConsultaTablaDeLecturas() {
+        when(sondas.findAll()).thenReturn(List.of(sonda("A", "RETIRADA")));
+        var resumen = service.resumen("mes");
+        assertEquals(0, resumen.sondasActivas());
+        assertEquals(0, resumen.lecturas());
+        assertNull(resumen.profundidadMediaM());
+        verifyNoInteractions(lecturas);
+    }
 }

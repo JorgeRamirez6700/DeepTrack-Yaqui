@@ -137,7 +137,7 @@ public class SondaService {
             throw ApiException.badRequest("Solo las sondas ACTIVAS pueden registrar nuevas lecturas");
         }
         String idSonda = sonda.getIdSonda();
-        Double ultima = lecturaRepository.findFirstByIdSondaOrderByFechaHoraDesc(idSonda)
+        Double ultima = lecturaRepository.findFirstByIdSondaOrderByFechaHoraDescIdLecturaDesc(idSonda)
                 .map(Lectura::getProfundidadM).orElse(null);
         if (ultima == null || !ultima.equals(profundidad)) {
             lecturaRepository.save(new Lectura(idSonda, profundidad, LocalDateTime.now()));
@@ -145,7 +145,7 @@ public class SondaService {
     }
 
     private SondaDTO toDto(Sonda s) {
-        Double actual = lecturaRepository.findFirstByIdSondaOrderByFechaHoraDesc(s.getIdSonda())
+        Double actual = lecturaRepository.findFirstByIdSondaOrderByFechaHoraDescIdLecturaDesc(s.getIdSonda())
                 .map(Lectura::getProfundidadM).orElse(null);
         return toDto(s, actual);
     }

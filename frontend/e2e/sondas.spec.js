@@ -44,6 +44,14 @@ test('flujo real: decimales, CSV, filtros, retiro y reactivación sin pérdida d
   await expect(fila(page, id)).toContainText('-2.35 m');
   expect(await leerHistorico(page, id)).toEqual([12.34, -2.35]);
 
+  // Editar metadatos sin modificar una lectura decimal no crea un duplicado.
+  await fila(page, id).getByRole('button', { name: 'Editar', exact: true }).click();
+  await expect(page.locator('#s-prof')).toHaveValue('-2.35');
+  await page.locator('#s-cuadrante').fill('QA1');
+  await guardar(page);
+  await expect(fila(page, id)).toContainText('QA1');
+  expect(await leerHistorico(page, id)).toEqual([12.34, -2.35]);
+
   await page.getByRole('button', { name: 'Reportes', exact: true }).click();
   await expect(page.locator('tr').filter({ hasText: id })).toContainText('-2.35 m');
   const descarga = page.waitForEvent('download');
@@ -68,7 +76,7 @@ test('flujo real: decimales, CSV, filtros, retiro y reactivación sin pérdida d
   await page.getByLabel('Condición (sondas activas)').selectOption('normal');
   await expect(fila(page, id)).toHaveCount(0);
   await page.getByRole('button', { name: 'Limpiar filtros' }).click();
-  await page.getByLabel('Estado', { exact: true }).selectOption('RETIRADA');
+  await page.getByRole('combobox', { name: 'Estado', exact: true }).selectOption('RETIRADA');
   await expect(fila(page, id)).toBeVisible();
   await fila(page, id).getByRole('button', { name: 'Editar', exact: true }).click();
   await expect(page.locator('#s-prof')).toBeDisabled();

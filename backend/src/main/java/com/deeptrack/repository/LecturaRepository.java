@@ -24,8 +24,8 @@ public interface LecturaRepository extends JpaRepository<Lectura, Long> {
         """)
     List<Lectura> findUltimasPorSonda(@Param("ids") Collection<String> ids);
 
-    /** Última lectura de una sonda (RF-03: resumen / hover). */
-    Optional<Lectura> findFirstByIdSondaOrderByFechaHoraDesc(String idSonda);
+    /** Última lectura de una sonda; mismo desempate por ID que el listado. */
+    Optional<Lectura> findFirstByIdSondaOrderByFechaHoraDescIdLecturaDesc(String idSonda);
 
     /** Serie histórica desde una fecha (RF-04 / RF-05: gráfica y filtros de tiempo). */
     List<Lectura> findByIdSondaAndFechaHoraAfterOrderByFechaHoraAsc(String idSonda, LocalDateTime desde);

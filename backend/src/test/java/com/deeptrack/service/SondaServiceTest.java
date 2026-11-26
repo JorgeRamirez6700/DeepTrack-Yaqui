@@ -170,7 +170,7 @@ class SondaServiceTest {
         Sonda s = sonda("SN-RET");
         s.setEstado("RETIRADA");
         when(sondaRepository.findById("SN-RET")).thenReturn(Optional.of(s));
-        when(lecturaRepository.findFirstByIdSondaOrderByFechaHoraDesc("SN-RET"))
+        when(lecturaRepository.findFirstByIdSondaOrderByFechaHoraDescIdLecturaDesc("SN-RET"))
             .thenReturn(Optional.of(new Lectura("SN-RET", 12.0, LocalDateTime.now().minusDays(2))));
         var req = new com.deeptrack.dto.SondaRequest("SN-RET", "B3", 27.35, -110.02, "ACTIVA", null);
         assertEquals("ACTIVA", service.actualizar("SN-RET", req).estado());
@@ -196,7 +196,7 @@ class SondaServiceTest {
         assertTrue(resultado.get(1).enAlerta());
         verify(lecturaRepository, org.mockito.Mockito.times(1)).findUltimasPorSonda(any());
         org.mockito.Mockito.verify(lecturaRepository, org.mockito.Mockito.never())
-            .findFirstByIdSondaOrderByFechaHoraDesc(any());
+            .findFirstByIdSondaOrderByFechaHoraDescIdLecturaDesc(any());
     }
 
     /** Regresión #9: el valor firmado negativo es válido con una referencia definida. */

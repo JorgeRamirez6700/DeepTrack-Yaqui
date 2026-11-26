@@ -49,7 +49,7 @@ public class EstadisticasService {
                 .map(Sonda::getIdSonda)
                 .collect(Collectors.toSet());
 
-        List<Lectura> disponibles = lecturas
+        List<Lectura> disponibles = idsActivos.isEmpty() ? List.of() : lecturas
                 .findByFechaHoraGreaterThanEqualAndFechaHoraLessThanOrderByFechaHoraAsc(desde, hasta)
                 .stream()
                 .filter(l -> idsActivos.contains(l.getIdSonda()))

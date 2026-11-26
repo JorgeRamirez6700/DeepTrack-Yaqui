@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { filtrarSondas } from '../src/utils/filtrarSondas.js';
+import { condicionSonda, filtrarSondas } from '../src/utils/filtrarSondas.js';
 
 const sondas = [
   { idSonda: 'ACT-1', cuadrante: 'A1', estado: 'ACTIVA', profundidadActual: 12, enAlerta: false },
@@ -43,4 +43,24 @@ test('condición y estado se cruzan sin reclasificar retiradas', () => {
 test('un valor firmado negativo es un dato válido bajo condición normal', () => {
   const negativas = [{ idSonda: 'NEG', cuadrante: 'N1', estado: 'ACTIVA', profundidadActual: -2, enAlerta: false }];
   assert.deepEqual(filtrarSondas(negativas, '', 'normal', 'all').map(s => s.idSonda), ['NEG']);
+});
+
+test('clasificación compartida preserva estados y distingue valores ausentes o no finitos', () => {
+  for (const [estado, profundidadActual, enAlerta, esperado] of [
+    ['ACTIVA', 0, false, 'normal'],
+    ['ACTIVA', -2.35, false, 'normal'],
+    ['ACTIVA', 25, true, 'alert'],
+    ['ACTIVA', null, true, 'missing'],
+    ['ACTIVA', NaN, false, 'missing'],
+    ['ACTIVA', Infinity, true, 'missing'],
+    ['RETIRADA', 25, true, 'inactive'],
+    ['INACTIVA', 25, true, 'inactive'],
+    ['MANTENIMIENTO', 25, true, 'inactive'],
+  ]) {
+    const sonda = { idSonda: 'TEST', cuadrante: 'QA', estado, profundidadActual, enAlerta };
+    assert.equal(condicionSonda(sonda), esperado);
+    for (const filtro of ['normal', 'alert', 'missing']) {
+      assert.equal(filtrarSondas([sonda], '', filtro).length, filtro === esperado ? 1 : 0);
+    }
+  }
 });

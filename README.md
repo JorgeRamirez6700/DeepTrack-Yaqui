@@ -94,6 +94,7 @@ Añade, si es posible, una captura de pantalla y el mensaje de **F12 → Console
 - `prod`: SQL Server institucional; requiere `DB_URL`, `DB_USER`, `DB_PASSWORD` y validación previa del esquema.
 - Seguridad: sesiones con cookie HttpOnly, CSRF, contraseñas BCrypt y permisos por rol.
 - `GET /api/sondas`: consulta sondas; `GET /api/sondas/{id}/historico?rango=mes`: histórico; `DELETE /api/sondas/{id}`: **retiro lógico**, no borrado físico.
-- Validación automatizada: `cd backend && mvn clean verify` y `cd frontend && npm run build`.
+- Validación automatizada: `cd backend && mvn clean verify` y, en `frontend`, `npm test` y `npm run build`.
+- Pruebas completas de navegador: desde `frontend`, ejecutar `npm install`, `npx playwright install chromium` y `npm run test:e2e`. Cerrar primero los servidores locales (puertos 8080 y 5173); Playwright inicia sus propios servidores y H2 en memoria. En Linux puede ser necesario `npx playwright install --with-deps chromium`. No requiere Google Maps ni datos reales.
 
 Documentación detallada de las iteraciones y límites conocidos en `docs/`.

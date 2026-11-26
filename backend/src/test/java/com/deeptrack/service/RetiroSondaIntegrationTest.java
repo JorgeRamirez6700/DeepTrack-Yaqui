@@ -81,4 +81,26 @@ class RetiroSondaIntegrationTest {
         assertTrue(reportes.reporte(mes.getYear(), mes.getMonthValue()).sondas()
             .stream().anyMatch(d -> d.idSonda().equals(id)));
     }
+    @Test
+    void ultimaLecturaCoincideEntreListadoDetalleYEdicionConFechaEmpatada() {
+        String id = "QA-EMPATE";
+        Sonda s = new Sonda();
+        s.setIdSonda(id);
+        s.setCuadrante("QA");
+        s.setLatitud(27.35);
+        s.setLongitud(-109.93);
+        sondas.saveAndFlush(s);
+        LocalDateTime fecha = LocalDateTime.now().minusHours(1).withNano(0);
+        lecturas.saveAndFlush(new Lectura(id, 8.0, fecha));
+        lecturas.saveAndFlush(new Lectura(id, -4.0, fecha));
+        entityManager.clear();
+
+        assertEquals(-4.0, service.obtener(id).profundidadActual());
+        assertEquals(-4.0, service.listar().stream()
+            .filter(d -> d.idSonda().equals(id)).findFirst().orElseThrow().profundidadActual());
+        assertEquals(-4.0, service.actualizar(id,
+            new SondaRequest(id, "QA", 27.35, -109.93, "ACTIVA", -4.0)).profundidadActual());
+        entityManager.flush();
+        assertEquals(2L, lecturas.count());
+    }
 }
