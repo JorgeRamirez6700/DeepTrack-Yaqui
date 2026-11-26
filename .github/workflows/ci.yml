@@ -49,3 +49,37 @@ jobs:
         run: npm test
       - name: Compilar frontend
         run: npm run build
+
+  e2e:
+    name: Integracion navegador - Chromium / H2
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Obtener codigo
+        uses: actions/checkout@v4
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: Configurar Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Pruebas de extremo a extremo
+        run: npm run test:e2e
+      - name: Guardar evidencias en caso de fallo
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e
+          path: frontend/test-results/
+          retention-days: 7

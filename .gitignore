@@ -30,3 +30,7 @@ dist/
 *.iml
 .DS_Store
 Thumbs.db
+
+# Evidencias de pruebas E2E
+frontend/test-results/
+frontend/playwright-report/
