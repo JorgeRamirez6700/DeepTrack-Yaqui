@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -111,6 +112,15 @@ public class SondaService {
         return lecturaRepository.findByIdSondaAndFechaHoraGreaterThanAndFechaHoraLessThanEqualOrderByFechaHoraAscIdLecturaAsc(idSonda, desde, ahora).stream()
                 .map(l -> new LecturaPuntoDTO(l.getFechaHora(), l.getProfundidadM()))
                 .toList();
+    }
+
+    /** Fechas calendario inclusivas; no incluye registros futuros. */
+    @Transactional(readOnly = true)
+    public List<LecturaPuntoDTO> historicoIntervalo(String idSonda, LocalDate desde, LocalDate hasta) {
+        var intervalo = IntervaloAnalisis.validar(desde, hasta, LocalDateTime.now());
+        buscar(idSonda);
+        return lecturaRepository.findIntervalo(List.of(idSonda), intervalo.inicio(), intervalo.fin(), intervalo.ahora())
+                .stream().map(l -> new LecturaPuntoDTO(l.getFechaHora(), l.getProfundidadM())).toList();
     }
 
     // ---------- helpers ----------

@@ -33,7 +33,8 @@ public class EstadisticasService {
 
     @Transactional(readOnly = true)
     public ResumenValleDTO resumen(String periodo) {
-        LocalDate hoy = LocalDate.now();
+        LocalDateTime ahora = LocalDateTime.now();
+        LocalDate hoy = ahora.toLocalDate();
         LocalDate inicio = switch (periodo) {
             case "dia" -> hoy;
             case "semana" -> hoy.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
@@ -52,6 +53,7 @@ public class EstadisticasService {
         List<Lectura> disponibles = idsActivos.isEmpty() ? List.of() : lecturas
                 .findByFechaHoraGreaterThanEqualAndFechaHoraLessThanOrderByFechaHoraAsc(desde, hasta)
                 .stream()
+                .filter(l -> !l.getFechaHora().isAfter(ahora))
                 .filter(l -> idsActivos.contains(l.getIdSonda()))
                 .filter(l -> l.getProfundidadM() != null && Double.isFinite(l.getProfundidadM()))
                 .toList();

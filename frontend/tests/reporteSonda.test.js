@@ -51,3 +51,11 @@ test('pdf real incluye identificación, indicadores, gráfica y fecha', async ()
   assert.ok(bytes.includes('2026-11-26T20:00:00.000Z'));
   assert.ok(bytes.includes('%%EOF'));
 });
+
+test('reporte personalizado conserva el intervalo solicitado, no solo fechas observadas', () => {
+  const r = crearReporteSonda(sonda, 'personalizado', puntos, new Date('2026-11-26T20:00:00Z'),
+    { desde: '2026-11-24', hasta: '2026-11-26' });
+  assert.equal(r.periodo, '2026-11-24 a 2026-11-26');
+  assert.ok(r.nombre.includes('personalizado-2026-11-24_2026-11-26'));
+  assert.equal(r.resumen.cantidad, 2);
+});

@@ -205,3 +205,37 @@ test('sonda sin mediciones y filtro de vigencia independiente', async ({ page })
   await expect(fila(page, anterior)).toBeVisible();
   await expect(fila(page, id)).toHaveCount(0);
 });
+
+test('análisis avanzado e intervalo individual con exportación personalizada', async ({ page }) => {
+  await login(page);
+  await page.getByRole('button', { name: 'Estadísticas', exact: true }).click();
+  const panel = page.getByRole('region', { name: 'Análisis avanzado' });
+  await expect(panel.getByRole('heading', { name: 'Estadísticas por cuadrante' })).toBeVisible();
+  await panel.getByRole('checkbox', { name: /SN-YQ-012/ }).check();
+  await panel.getByRole('checkbox', { name: /SN-YQ-045/ }).check();
+  await panel.getByRole('button', { name: 'Aplicar análisis' }).click();
+  const comparacion = panel.getByRole('region', { name: 'Comparación entre sondas' });
+  await expect(comparacion.getByRole('row').filter({hasText:'SN-YQ-012'})).toBeVisible();
+  await expect(comparacion.getByRole('row').filter({hasText:'SN-YQ-045'})).toBeVisible();
+  await expect(comparacion.locator('.recharts-line')).toHaveCount(2);
+  const respuesta = await page.request.get('/api/estadisticas/analisis?desde=2026-11-26&hasta=2100-01-01');
+  expect(respuesta.status()).toBe(400);
+
+  await abrirMapa(page);
+  await fila(page, 'SN-YQ-012').getByRole('button', { name: 'Ver tendencia' }).click();
+  const modal = page.getByRole('dialog');
+  const desde = await modal.getByRole('textbox', {name:'Desde'}).count() ? modal.getByRole('textbox', {name:'Desde'}) : modal.getByLabel('Desde', {exact:true});
+  const hasta = modal.getByLabel('Hasta', {exact:true});
+  const fin = await hasta.inputValue();
+  await desde.fill(fin);
+  await modal.getByRole('button', {name:'Aplicar fechas'}).click();
+  await expect(modal.getByText('Periodo aplicado: '+fin+' a '+fin)).toBeVisible();
+  await expect(modal.getByRole('region',{name:'Indicadores del periodo'})).toBeVisible();
+  const evento = page.waitForEvent('download');
+  await modal.getByRole('button',{name:'Exportar Excel'}).click();
+  const descarga = await evento;
+  expect(descarga.suggestedFilename()).toContain('personalizado-'+fin+'_'+fin);
+  const filas = await readSheet(await descarga.path(),'Lecturas');
+  expect(filas.length).toBeGreaterThan(1);
+  expect(filas.slice(1).every(r => r[0].startsWith(fin))).toBeTruthy();
+});

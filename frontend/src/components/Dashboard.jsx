@@ -8,6 +8,7 @@ import SondaForm from './SondaForm.jsx';
 const TrendModal = lazy(() => import('./TrendModal.jsx'));
 import ValleSummary from './ValleSummary.jsx';
 const ValleReports = lazy(() => import('./ValleReports.jsx'));
+const AnalisisAvanzado = lazy(() => import('./AnalisisAvanzado.jsx'));
 const UsuariosPanel = lazy(() => import('./UsuariosPanel.jsx'));
 import { ThemeSelector } from './ThemeProvider.jsx';
 
@@ -237,6 +238,9 @@ export default function Dashboard({ user, onLogout }) {
             <>
               <ValleSummary revision={revision} />
               <Suspense fallback={<div className="app-loading" role="status">Cargando estadísticas…</div>}><ValleReports mode="trend" revision={revision} /></Suspense>
+              <Suspense fallback={<div className="app-loading" role="status">Cargando análisis…</div>}>
+                <AnalisisAvanzado sondas={sondas} revision={revision} />
+              </Suspense>
             </>
           )}
 

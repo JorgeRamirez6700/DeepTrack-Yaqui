@@ -433,3 +433,18 @@ button:disabled { cursor: not-allowed; }
 .trend-export { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .trend-export small { font-size: 12px; color: var(--text-secondary); }
 .trend-export button:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Iteración 0.17 — análisis avanzado e intervalos */
+.analysis-panel { margin-top: 18px; }
+.analysis-controls, .trend-custom { display:flex; flex-wrap:wrap; gap:12px; align-items:end; margin:14px 0; }
+.analysis-dates { display:flex; flex-wrap:wrap; gap:12px; }
+.analysis-dates label { display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text-secondary); }
+.analysis-dates input { background:var(--surface-2); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:8px; font:inherit; }
+.analysis-probes { flex:1 0 100%; border:1px solid var(--line); border-radius:8px; padding:10px; max-height:180px; overflow:auto; display:flex; flex-wrap:wrap; gap:10px 16px; }
+.analysis-probes legend { font-size:12px; color:var(--text-secondary); }
+.analysis-probes label { display:flex; gap:6px; align-items:center; font-size:13px; }
+.analysis-chart { height:300px; }
+.analysis-panel section { margin-top:20px; }
+.analysis-panel h3 { margin-bottom:12px; }
+.trend-custom small { color:var(--alert); }
+@media (max-width:600px) { .analysis-chart { height:230px; } }

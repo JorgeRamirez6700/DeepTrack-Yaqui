@@ -1,4 +1,5 @@
 import { etiquetaVigencia, fechaRegistrada, resumenHistorico } from './monitoreoSonda.js';
+import { validarIntervalo } from './intervaloAnalisis.js';
 
 export const RANGOS_SONDA = [
   { id: 'dia', label: 'Último día' },
@@ -11,8 +12,10 @@ export const RANGOS_SONDA = [
 export const NOTA_REPORTE = 'Estadística descriptiva. Hora de medición sin zona horaria definida; referencia física y signo pendientes de validación institucional. Vigencia no equivale a conectividad.';
 
 // Captura los mismos puntos ya preparados para la gráfica; no vuelve a pedir datos.
-export function crearReporteSonda(sonda, rango, puntos, generado = new Date()) {
-  const periodo = RANGOS_SONDA.find(r => r.id === rango);
+export function crearReporteSonda(sonda, rango, puntos, generado = new Date(), intervalo = null) {
+  const periodo = rango === 'personalizado' && intervalo && !validarIntervalo(intervalo)
+    ? { label: intervalo.desde + ' a ' + intervalo.hasta }
+    : RANGOS_SONDA.find(r => r.id === rango);
   if (!periodo) throw new Error('Periodo inválido');
   const resumen = resumenHistorico(puntos);
   if (!resumen.cantidad) throw new Error('No hay lecturas válidas para exportar');
@@ -29,7 +32,7 @@ export function crearReporteSonda(sonda, rango, puntos, generado = new Date()) {
     hasta: fechaRegistrada(puntos[puntos.length - 1].fechaHora),
     puntos: puntos.map(p => ({ fechaHora: p.fechaHora, tiempo: p.tiempo, profundidadM: p.profundidadM })),
     resumen,
-    nombre: 'DeepTrack-' + valido + '-' + rango + '-' + fechaGeneracion.slice(0, 10),
+    nombre: 'DeepTrack-' + valido + '-' + rango + (rango === 'personalizado' ? '-' + intervalo.desde + '_' + intervalo.hasta : '') + '-' + fechaGeneracion.slice(0, 10),
   };
 }
 

@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api } from '../services/api.js';
 import { useTheme } from './ThemeProvider.jsx';
+import IntervaloCampos from './IntervaloCampos.jsx';
+import { intervaloInicial, validarIntervalo } from '../utils/intervaloAnalisis.js';
 import { etiquetaVigencia, fechaRegistrada, metros, prepararHistorico, resumenHistorico } from '../utils/monitoreoSonda.js';
 
 import { RANGOS_SONDA as RANGOS, crearReporteSonda, descargarBlob } from '../utils/reporteSonda.js';
@@ -19,32 +21,35 @@ export default function TrendModal({ sonda, onClose, revision = 0 }) {
   const dialogRef = useRef(null);
   useDialog(dialogRef, onClose);
   const [rango, setRango] = useState('mes');
+  const [fechas, setFechas] = useState(intervaloInicial);
+  const [intervalo, setIntervalo] = useState(null);
   const [resultado, setResultado] = useState(null);
   const [exportando, setExportando] = useState('');
   const [errorExportacion, setErrorExportacion] = useState('');
   const bloqueoExportacion = useRef(false);
   const id = sonda.idSonda;
-  const vigente = resultado?.id === id && resultado?.rango === rango && resultado?.revision === revision;
+  const vigente = resultado?.id === id && resultado?.rango === rango && resultado?.revision === revision && resultado?.intervalo === intervalo;
   const estado = vigente ? resultado.estado : 'cargando';
   const datos = useMemo(() => vigente ? resultado.datos : [], [vigente, resultado]);
   const resumen = useMemo(() => resumenHistorico(datos), [datos]);
 
   useEffect(() => {
     let activo = true;
-    api.historico(id, rango)
+    (rango === 'personalizado' ? api.historicoIntervalo(id, intervalo) : api.historico(id, rango))
       .then(d => {
-        if (activo) setResultado({ id, rango, revision, estado: 'ok', datos: prepararHistorico(d) });
+        if (activo) setResultado({ id, rango, revision, intervalo, estado: 'ok', datos: prepararHistorico(d) });
       })
       .catch(() => {
-        if (activo) setResultado({ id, rango, revision, estado: 'error', datos: [] });
+        if (activo) setResultado({ id, rango, revision, intervalo, estado: 'error', datos: [] });
       });
     return () => { activo = false; };
-  }, [id, rango, revision]);
+  }, [id, rango, revision, intervalo]);
 
   const cambiarRango = nuevo => {
     if (nuevo === rango) return;
     setResultado(null);
     setErrorExportacion('');
+    setIntervalo(null);
     setRango(nuevo);
   };
   const puedeExportar = estado === 'ok' && resumen.cantidad > 0 && !exportando;
@@ -55,7 +60,7 @@ export default function TrendModal({ sonda, onClose, revision = 0 }) {
     setExportando(formato);
     setErrorExportacion('');
     try {
-      const reporte = crearReporteSonda(sonda, rango, datos);
+      const reporte = crearReporteSonda(sonda, rango, datos, new Date(), intervalo);
       const blob = formato === 'pdf'
         ? (await import('../utils/exportarPdfSonda.js')).generarPdfSonda(reporte)
         : await (await import('../utils/exportarExcelSonda.js')).generarExcelSonda(reporte);
@@ -92,6 +97,17 @@ export default function TrendModal({ sonda, onClose, revision = 0 }) {
             </button>
           ))}
         </div>
+
+        <form className="trend-custom" onSubmit={e => {
+          e.preventDefault();
+          if (validarIntervalo(fechas) || exportando) return;
+          setResultado(null); setErrorExportacion(''); setIntervalo({ ...fechas }); setRango('personalizado');
+        }}>
+          <IntervaloCampos valor={fechas} onChange={setFechas} disabled={Boolean(exportando)} />
+          <button type="submit" className="btn-small" disabled={Boolean(exportando) || Boolean(validarIntervalo(fechas))}>Aplicar fechas</button>
+          {validarIntervalo(fechas) && <small role="alert">{validarIntervalo(fechas)}</small>}
+        </form>
+        {rango === 'personalizado' && intervalo && <p className="valle-nota">Periodo aplicado: {intervalo.desde} a {intervalo.hasta}</p>}
 
         {estado === 'ok' && resumen.cantidad > 0 && (
           <section className="trend-metrics" aria-label="Indicadores del periodo">

@@ -31,6 +31,16 @@ public interface LecturaRepository extends JpaRepository<Lectura, Long> {
     List<Lectura> findByIdSondaAndFechaHoraGreaterThanAndFechaHoraLessThanEqualOrderByFechaHoraAscIdLecturaAsc(
             String idSonda, LocalDateTime desde, LocalDateTime hasta);
 
+    /** Intervalo calendario inclusivo por día, limitado al instante de consulta. */
+    @Query("""
+        select l from Lectura l where l.idSonda in :ids
+        and l.fechaHora >= :desde and l.fechaHora < :fin and l.fechaHora <= :ahora
+        order by l.fechaHora, l.idLectura
+        """)
+    List<Lectura> findIntervalo(@Param("ids") Collection<String> ids,
+            @Param("desde") LocalDateTime desde, @Param("fin") LocalDateTime fin,
+            @Param("ahora") LocalDateTime ahora);
+
     /** Lecturas de un periodo para consolidar estadísticas entre sondas. */
     List<Lectura> findByFechaHoraGreaterThanEqualAndFechaHoraLessThanOrderByFechaHoraAsc(
             LocalDateTime inicio, LocalDateTime fin);
