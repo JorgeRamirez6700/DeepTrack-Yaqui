@@ -2,7 +2,16 @@
 export function condicionSonda(sonda) {
   if (sonda.estado !== 'ACTIVA') return 'inactive';
   if (!Number.isFinite(sonda.profundidadActual)) return 'missing';
-  return sonda.enAlerta ? 'alert' : 'normal';
+  switch (sonda.nivelAlerta) {
+    case 'CRITICA': return 'alert';
+    case 'ADVERTENCIA': return 'warning';
+    case 'NORMAL': return 'normal';
+    case 'SIN_DATOS': return 'missing';
+    case 'SIN_CRITERIO':
+    case 'FECHA_FUTURA': return 'unassessed';
+    // Compatibilidad con respuestas y pruebas previas a 0.18.
+    default: return sonda.enAlerta ? 'alert' : 'normal';
+  }
 }
 
 /**

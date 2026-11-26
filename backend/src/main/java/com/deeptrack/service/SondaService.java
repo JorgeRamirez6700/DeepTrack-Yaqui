@@ -23,16 +23,16 @@ public class SondaService {
 
     private final SondaRepository sondaRepository;
     private final LecturaRepository lecturaRepository;
-    private final double umbralAlertaMetros;
+    private final ReglasAlerta reglasAlerta;
     private final long vigenciaHoras;
 
     public SondaService(SondaRepository sondaRepository,
                         LecturaRepository lecturaRepository,
-                        @Value("${deeptrack.alerta.umbral-metros:20}") double umbralAlertaMetros,
+                        ReglasAlerta reglasAlerta,
                         @Value("${deeptrack.monitoreo.vigencia-horas:0}") long vigenciaHoras) {
         this.sondaRepository = sondaRepository;
         this.lecturaRepository = lecturaRepository;
-        this.umbralAlertaMetros = umbralAlertaMetros;
+        this.reglasAlerta = reglasAlerta;
         this.vigenciaHoras = vigenciaHoras;
     }
 
@@ -167,9 +167,9 @@ public class SondaService {
     private SondaDTO toDto(Sonda s, Lectura ultima, LocalDateTime ahora) {
         Double actual = ultima == null ? null : ultima.getProfundidadM();
         LocalDateTime fecha = ultima == null ? null : ultima.getFechaHora();
-        boolean enAlerta = "ACTIVA".equals(s.getEstado()) && actual != null
-                && Double.isFinite(actual) && actual > umbralAlertaMetros;
+        var alerta = reglasAlerta.evaluar(s.getEstado(), actual, fecha, ahora);
         return new SondaDTO(s.getIdSonda(), s.getCuadrante(), s.getLatitud(), s.getLongitud(),
-                s.getEstado(), actual, enAlerta, fecha, VigenciaLectura.evaluar(fecha, ahora, vigenciaHoras));
+                s.getEstado(), actual, alerta.nivel() == ReglasAlerta.Nivel.CRITICA, fecha,
+                VigenciaLectura.evaluar(fecha, ahora, vigenciaHoras), alerta.nivel().name(), alerta.motivo());
     }
 }

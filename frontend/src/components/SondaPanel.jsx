@@ -1,8 +1,6 @@
-import { condicionSonda } from '../utils/filtrarSondas.js';
+import { presentacionAlerta } from '../utils/presentacionAlerta.js';
 import { VIGENCIAS, etiquetaVigencia, fechaRegistrada } from '../utils/monitoreoSonda.js';
 
-const CLASES = { inactive: 'unknown', missing: 'unknown', normal: 'ok', alert: 'alert' };
-const ETIQUETAS = { missing: 'SIN DATOS', normal: 'NORMAL', alert: 'ALERTA' };
 
 export default function SondaPanel({
   sondas, onNew, onEdit, onDelete, onTrend, canManage = false,
@@ -34,7 +32,9 @@ export default function SondaPanel({
             onChange={e => onFilter(e.target.value)}>
             <option value="all">Todas</option>
             <option value="normal">Normal</option>
-            <option value="alert">Alertas</option>
+            <option value="alert">Críticas</option>
+            <option value="warning">Advertencias</option>
+            <option value="unassessed">Sin evaluar</option>
             <option value="missing">Sin datos</option>
           </select>
         </label>
@@ -67,12 +67,12 @@ export default function SondaPanel({
       )}
 
       {sondas.map(s => {
-        const condicion = condicionSonda(s);
+        const alerta = presentacionAlerta(s);
         return (
           <div className="sonda-row" key={s.idSonda}>
             <div className="row-head">
               <span className="sid">{s.idSonda}</span>
-              <span className={`badge ${CLASES[condicion]}`}>{ETIQUETAS[condicion] ?? s.estado}</span>
+              <span className={`badge ${alerta.clase}`} title={s.motivoAlerta}>{alerta.texto.toUpperCase()}</span>
             </div>
             <div className="meta">
               Cuadrante {s.cuadrante} · {Number.isFinite(s.profundidadActual) ? s.profundidadActual : '—'} m · {s.estado}

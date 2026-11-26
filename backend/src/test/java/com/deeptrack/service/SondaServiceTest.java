@@ -34,7 +34,7 @@ class SondaServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new SondaService(sondaRepository, lecturaRepository, 20.0, 48);
+        service = new SondaService(sondaRepository, lecturaRepository, new ReglasAlerta(true, "", "20", 0), 48);
     }
 
     private Sonda sonda(String id) {

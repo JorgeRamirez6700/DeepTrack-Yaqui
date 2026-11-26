@@ -9,6 +9,7 @@ const TrendModal = lazy(() => import('./TrendModal.jsx'));
 import ValleSummary from './ValleSummary.jsx';
 const ValleReports = lazy(() => import('./ValleReports.jsx'));
 const AnalisisAvanzado = lazy(() => import('./AnalisisAvanzado.jsx'));
+const AlertasPanel = lazy(() => import('./AlertasPanel.jsx'));
 const UsuariosPanel = lazy(() => import('./UsuariosPanel.jsx'));
 import { ThemeSelector } from './ThemeProvider.jsx';
 
@@ -17,6 +18,7 @@ const PAGES = [
   { id: 'mapa', icon: '⌖', title: 'Mapa de pozos', subtitle: 'Ubicación y estado de las sondas' },
   { id: 'estadisticas', icon: '▥', title: 'Estadísticas', subtitle: 'Indicadores y evolución del valle' },
   { id: 'reportes', icon: '▤', title: 'Reportes', subtitle: 'Informes mensuales y exportación' },
+  { id: 'alertas', icon: '!', title: 'Alertas', subtitle: 'Condiciones de profundidad y mediciones que requieren revisión' },
   { id: 'configuracion', icon: '⚙', title: 'Configuración', subtitle: 'Preferencias de visualización' },
 ];
 
@@ -116,18 +118,21 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const activa = pages.find((item) => item.id === page) || pages[0];
-  const { activas, alertas, atrasadas } = useMemo(() => {
+  const { activas, alertas, advertencias, atrasadas } = useMemo(() => {
     let activas = 0;
     let alertas = 0;
+    let advertencias = 0;
     let atrasadas = 0;
     for (const sonda of sondas) {
       if (sonda.estado === 'ACTIVA') {
         activas++;
         if (sonda.vigenciaLectura === 'ATRASADA') atrasadas++;
       }
-      if (condicionSonda(sonda) === 'alert') alertas++;
+      const condicion = condicionSonda(sonda);
+      if (condicion === 'alert') alertas++;
+      if (condicion === 'warning') advertencias++;
     }
-    return { activas, alertas, atrasadas };
+    return { activas, alertas, advertencias, atrasadas };
   }, [sondas]);
   const visible = useMemo(() => filtrarSondas(sondas, query, filter, stateFilter, vigenciaFilter), [sondas, query, filter, stateFilter, vigenciaFilter]);
   const mapaPanel = (
@@ -221,7 +226,7 @@ export default function Dashboard({ user, onLogout }) {
               <div className="overview-cards monitor-overview">
                 <div className="overview-card"><span>Sondas registradas</span><strong>{lastUpdate ? sondas.length : '—'}</strong><small>Dispositivos en el sistema</small></div>
                 <div className="overview-card"><span>Sondas activas</span><strong>{lastUpdate ? activas : '—'}</strong><small>Disponibles para monitoreo</small></div>
-                <div className="overview-card"><span>Alertas de profundidad</span><strong>{lastUpdate ? alertas : '—'}</strong><small>Según umbral de desarrollo (sondas activas)</small></div>
+                <div className="overview-card"><span>Alertas críticas</span><strong>{lastUpdate ? alertas : '—'}</strong><small>{lastUpdate ? advertencias + ' advertencias · criterios configurados' : 'Sin datos'}</small></div>
                 <div className="overview-card"><span>Lecturas atrasadas</span><strong>{lastUpdate ? atrasadas : '—'}</strong><small>Sondas activas · vigencia al consultar</small></div>
               </div>
               <ValleSummary revision={revision} />
@@ -245,6 +250,8 @@ export default function Dashboard({ user, onLogout }) {
           )}
 
           {page === 'reportes' && <Suspense fallback={<div className="app-loading" role="status">Preparando reportes…</div>}><ValleReports mode="report" revision={revision} /></Suspense>}
+
+          {page === 'alertas' && <Suspense fallback={<div className="app-loading" role="status">Cargando alertas…</div>}><AlertasPanel sondas={sondas} revision={revision} cargando={loading} onTrend={setTrendSonda} /></Suspense>}
 
           {page === 'usuarios' && user.rol === 'ADMINISTRADOR' && <Suspense fallback={<div className="app-loading" role="status">Cargando usuarios…</div>}><UsuariosPanel currentUser={user.usuario} /></Suspense>}
           {page === 'configuracion' && (

@@ -18,6 +18,9 @@ deeptrack:
   alerta:
     # Profundidad (m) a partir de la cual una sonda se considera en alerta.
     # PENDIENTE: confirmar el umbral real con el área de negocio (ver SRS, pendiente #1).
-    umbral-metros: 20
+    umbral-metros: ${DEEPTRACK_ALERTA_SUPERIOR:20}
+    habilitada: ${DEEPTRACK_ALERTA_HABILITADA:true}
+    inferior-metros: "${DEEPTRACK_ALERTA_INFERIOR:}"
+    margen-metros: ${DEEPTRACK_ALERTA_MARGEN:0}
   cors:
     allowed-origins: http://localhost:5173

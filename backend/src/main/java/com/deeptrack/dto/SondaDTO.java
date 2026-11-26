@@ -12,5 +12,7 @@ public record SondaDTO(
         Double profundidadActual,
         boolean enAlerta,
         LocalDateTime ultimaLecturaFechaHora,
-        String vigenciaLectura
+        String vigenciaLectura,
+        String nivelAlerta,
+        String motivoAlerta
 ) { }

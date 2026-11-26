@@ -57,6 +57,8 @@ export const api = {
     ids.forEach(id => params.append('ids', id));
     return request('/estadisticas/analisis?' + params);
   },
+  criteriosAlertas: () => request('/alertas/criterios'),
+  historialAlertas: (id) => request('/alertas/' + encodeURIComponent(id) + '/historial'),
   listarUsuarios: () => request('/usuarios'),
   actualizarUsuario: (id, data) => request(`/usuarios/${encodeURIComponent(id)}`, { method:'PUT', body:JSON.stringify(data) }),
   crearUsuario: (data) => request('/usuarios', { method: 'POST', body: JSON.stringify(data) }),

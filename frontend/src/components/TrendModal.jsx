@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api } from '../services/api.js';
 import { useTheme } from './ThemeProvider.jsx';
+import { presentacionAlerta } from '../utils/presentacionAlerta.js';
 import IntervaloCampos from './IntervaloCampos.jsx';
 import { intervaloInicial, validarIntervalo } from '../utils/intervaloAnalisis.js';
 import { etiquetaVigencia, fechaRegistrada, metros, prepararHistorico, resumenHistorico } from '../utils/monitoreoSonda.js';
@@ -80,6 +81,7 @@ export default function TrendModal({ sonda, onClose, revision = 0 }) {
           <div>
             <h3 id="trend-title">Sonda {id}</h3>
             <div className="cuadrante">Cuadrante {sonda.cuadrante} · {sonda.estado}</div>
+            <div className="trend-alert-status"><span className={`badge ${presentacionAlerta(sonda).clase}`}>{presentacionAlerta(sonda).texto}</span> <small>{sonda.motivoAlerta}</small></div>
           </div>
           <button className="modal-close" onClick={onClose} aria-label="Cerrar">✕</button>
         </div>

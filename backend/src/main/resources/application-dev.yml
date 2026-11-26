@@ -18,5 +18,9 @@ spring:
 
 # Umbral de demostración; no indica conectividad física de la sonda.
 deeptrack:
+  alerta:
+    # Valores ficticios para QA; no son límites de seguridad del acuífero.
+    inferior-metros: "${DEEPTRACK_ALERTA_INFERIOR:-10}"
+    margen-metros: ${DEEPTRACK_ALERTA_MARGEN:2}
   monitoreo:
     vigencia-horas: ${DEEPTRACK_VIGENCIA_HORAS:48}

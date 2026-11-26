@@ -22,3 +22,11 @@ server:
     session:
       cookie:
         secure: true
+
+# No evaluar umbrales de demostración en producción sin aprobación explícita.
+deeptrack:
+  alerta:
+    habilitada: ${DEEPTRACK_ALERTA_HABILITADA:false}
+    umbral-metros: "${DEEPTRACK_ALERTA_SUPERIOR:}"
+    inferior-metros: "${DEEPTRACK_ALERTA_INFERIOR:}"
+    margen-metros: ${DEEPTRACK_ALERTA_MARGEN:0}

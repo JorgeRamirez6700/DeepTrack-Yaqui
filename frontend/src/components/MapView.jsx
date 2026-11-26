@@ -1,14 +1,13 @@
 import { memo, useMemo, useState } from 'react';
 import { useTheme } from './ThemeProvider.jsx';
-import { condicionSonda } from '../utils/filtrarSondas.js';
+import { presentacionAlerta } from '../utils/presentacionAlerta.js';
 import { etiquetaVigencia, fechaRegistrada } from '../utils/monitoreoSonda.js';
 import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from '@react-google-maps/api';
 
 // Centro aproximado del Valle del Yaqui, Sonora.
 const CENTER = { lat: 27.32, lng: -109.95 };
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-const COLORES = { inactive: '#81939b', missing: '#81939b', alert: '#B5502E', normal: '#2E6E7E' };
-const ESTADOS = { alert: 'Alerta — umbral superado', missing: 'Sin datos', normal: 'Normal' };
+
 
 function MapView({ sondas, onSelect }) {
   return (
@@ -23,6 +22,10 @@ function MapView({ sondas, onSelect }) {
         </div>
       )}
       <div className="map-caption">Google Maps — Valle del Yaqui, Sonora</div>
+      <div className="alert-map-legend" aria-label="Leyenda de condiciones">
+        {[['#2E6E7E','Normal'],['#B98729','Advertencia'],['#B5502E','Crítica'],['#81939b','Sin evaluar / no activa / sin datos']].map(([color,texto]) =>
+          <span key={texto}><i style={{backgroundColor:color}} aria-hidden="true" />{texto}</span>)}
+      </div>
     </div>
   );
 }
@@ -53,7 +56,7 @@ function LoadedMap({ sondas, onSelect }) {
   const icon = (sonda) => ({
     path: window.google.maps.SymbolPath.CIRCLE,
     scale: 9,
-    fillColor: COLORES[condicionSonda(sonda)],
+    fillColor: presentacionAlerta(sonda).color,
     fillOpacity: 1,
     strokeColor: '#FFFFFF',
     strokeWeight: 2,
@@ -84,7 +87,9 @@ function LoadedMap({ sondas, onSelect }) {
             <strong>{hover.idSonda}</strong>
             <div>Cuadrante: {hover.cuadrante}</div>
             <div>Profundidad: {hover.profundidadActual ?? '—'} m</div>
-            <div>Estado: {ESTADOS[condicionSonda(hover)] ?? hover.estado}</div>
+            <div>Estado: {hover.estado}</div>
+            <div>Condición: {presentacionAlerta(hover).texto}</div>
+            {hover.motivoAlerta && <div>{hover.motivoAlerta}</div>}
             <div>Última medición: {fechaRegistrada(hover.ultimaLecturaFechaHora)}</div>
             <div>Vigencia: {etiquetaVigencia(hover)}</div>
           </div>

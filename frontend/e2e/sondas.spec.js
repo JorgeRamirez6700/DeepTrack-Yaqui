@@ -239,3 +239,38 @@ test('análisis avanzado e intervalo individual con exportación personalizada',
   expect(filas.length).toBeGreaterThan(1);
   expect(filas.slice(1).every(r => r[0].startsWith(fin))).toBeTruthy();
 });
+
+test('alertas configuradas, filtros y reevaluación histórica', async ({ page }) => {
+  await login(page);
+  await abrirMapa(page);
+  const id = 'QA-E2E-ALERTA';
+  await page.getByRole('button',{name:'+ Nueva',exact:true}).click();
+  await page.locator('#s-id').fill(id);
+  await page.locator('#s-cuadrante').fill('QA');
+  await page.locator('#s-lat').fill('27.35');
+  await page.locator('#s-lng').fill('-109.95');
+  await page.locator('#s-prof').fill('19');
+  await guardar(page);
+  await expect(fila(page,id)).toContainText('ADVERTENCIA');
+  await page.getByLabel('Condición (sondas activas)').selectOption('warning');
+  await expect(fila(page,id)).toBeVisible();
+  await fila(page,id).getByRole('button',{name:'Editar',exact:true}).click();
+  await page.locator('#s-prof').fill('-11');
+  await guardar(page);
+  await expect(fila(page,id)).toHaveCount(0);
+  await page.getByLabel('Condición (sondas activas)').selectOption('alert');
+  await expect(fila(page,id)).toContainText('CRÍTICA');
+  await page.getByRole('button',{name:'Alertas',exact:true}).click();
+  const centro = page.getByRole('region',{name:'Centro de alertas'});
+  await expect(centro.getByRole('region',{name:'Criterios configurados'})).toContainText('-10.00 m');
+  const actual = centro.getByRole('region',{name:'Condiciones actuales'}).getByRole('row').filter({hasText:id});
+  await expect(actual).toContainText('Por debajo del límite inferior');
+  await actual.getByRole('button',{name:'Historial',exact:true}).click();
+  const hist = centro.getByRole('region',{name:'Historial de condiciones'});
+  await expect(hist).toContainText('2 mediciones críticas o de advertencia.');
+  await expect(hist).toContainText('-11.00 m');
+  await expect(hist).toContainText('19.00 m');
+  const respuesta = await page.request.get('/api/alertas/'+id+'/historial');
+  expect(respuesta.ok()).toBeTruthy();
+  expect((await respuesta.json()).puntos.map(p=>p.nivel)).toEqual(['CRITICA','ADVERTENCIA']);
+});

@@ -1,0 +1,12 @@
+# Iteración 0.18 — Sistema avanzado de alertas
+
+Rama experimental test, basada en dev bd1f4a9 (0.17). Sin merge a dev/main. Ampliación del semáforo y RF-02; criterios demostrativos, no límites hidrológicos aprobados.
+
+- Niveles calculados en backend: NORMAL, ADVERTENCIA, CRITICA, SIN_DATOS, NO_APLICA, SIN_CRITERIO, FECHA_FUTURA. La bandera enAlerta conserva compatibilidad y significa crítica. Las mediciones futuras no se evalúan; las antiguas conservan su condición con vigencia separada. No se infiere desconexión.
+- Configuración por entorno, requiere reinicio: DEEPTRACK_ALERTA_HABILITADA, DEEPTRACK_ALERTA_INFERIOR, DEEPTRACK_ALERTA_SUPERIOR, DEEPTRACK_ALERTA_MARGEN. En dev: inferior -10 m, superior 20 m, margen 2 m (ficticios); fuera de límites estrictos es crítica, en el límite o a distancia <= margen (si margen > 0) es advertencia. Límites opcionales; ambos vacíos o deshabilitada => sin criterio. Configuración inválida falla al arrancar. Perfil prod deshabilitado por defecto, sin límites demostrativos.
+- Mapa, listado, ficha y filtros comparten clasificación; Inicio muestra críticas y advertencias. Nuevo centro Alertas: criterios de solo lectura, condiciones actuales, historial por sonda.
+- Historial: reevaluación del último mes móvil con las reglas actuales, sin reconstruir estado operativo histórico, máximo 100 coincidencias recientes, total de coincidencias. No es una bitácora de eventos emitidos ni hay notificaciones, persistencia de alertas o edición web de umbrales. No se toca esquema ni se añaden dependencias. Validar volumen antes de ampliar el periodo.
+- Endpoints autenticados GET /api/alertas/criterios y GET /api/alertas/{id}/historial. La API de sondas añade nivelAlerta y motivoAlerta.
+- CI habilitada en test. Pruebas de límites, fechas futuras, datos inválidos, clasificación y flujo de navegador.
+- Separación local de datos: cambiar de rama no aísla backend/data. Para probar con H2 independiente, desde backend en PowerShell: `$env:SPRING_DATASOURCE_URL='jdbc:h2:file:./data/deeptrack-test;DB_CLOSE_ON_EXIT=FALSE'` y `mvn spring-boot:run`. Para volver a dev, cerrar el servidor y ejecutar `Remove-Item Env:SPRING_DATASOURCE_URL`. No ejecutar con credenciales institucionales.
+- Pendiente: frecuencia, referencia física, umbrales aprobados por el área responsable, Google Maps real y SQL Server. La revisión de seguridad/auditoría sigue prevista para 0.19.

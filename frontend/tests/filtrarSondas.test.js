@@ -64,3 +64,19 @@ test('clasificación compartida preserva estados y distingue valores ausentes o 
     }
   }
 });
+
+test('niveles avanzados son independientes de vigencia y no se clasifican como normales por defecto', () => {
+  const base = { estado:'ACTIVA', profundidadActual:19, enAlerta:false, vigenciaLectura:'ATRASADA', cuadrante:'QA' };
+  const sondas = [
+    {...base,idSonda:'A',nivelAlerta:'ADVERTENCIA'},
+    {...base,idSonda:'B',nivelAlerta:'CRITICA',enAlerta:true},
+    {...base,idSonda:'C',nivelAlerta:'SIN_CRITERIO'},
+    {...base,idSonda:'D',nivelAlerta:'FECHA_FUTURA',vigenciaLectura:'FECHA_FUTURA'},
+    {...base,idSonda:'E',nivelAlerta:'NORMAL'},
+    {...base,idSonda:'F',nivelAlerta:'CRITICA',estado:'RETIRADA'},
+  ];
+  assert.deepEqual(filtrarSondas(sondas,'','warning').map(s=>s.idSonda),['A']);
+  assert.deepEqual(filtrarSondas(sondas,'','alert').map(s=>s.idSonda),['B']);
+  assert.deepEqual(filtrarSondas(sondas,'','unassessed').map(s=>s.idSonda),['C','D']);
+  assert.deepEqual(filtrarSondas(sondas,'','normal').map(s=>s.idSonda),['E']);
+});
