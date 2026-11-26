@@ -1,5 +1,6 @@
 import { useDialog } from './useDialog.js';
 import { useRef, useState } from 'react';
+import { lecturaOpcional } from '../utils/lecturaOpcional.js';
 
 export default function SondaForm({ sonda, onSave, onDelete, onClose }) {
   const editing = Boolean(sonda);
@@ -30,7 +31,7 @@ export default function SondaForm({ sonda, onSave, onDelete, onClose }) {
           estado: form.estado,
           latitud: parseFloat(form.latitud),
           longitud: parseFloat(form.longitud),
-          profundidadActual: form.estado !== 'ACTIVA' || form.profundidadActual === '' ? null : parseFloat(form.profundidadActual),
+          profundidadActual: lecturaOpcional(form.estado, form.profundidadActual),
         },
         editing ? sonda.idSonda : null
       );
@@ -81,8 +82,9 @@ export default function SondaForm({ sonda, onSave, onDelete, onClose }) {
             </div>
           </div>
           <div className="field">
-            <label htmlFor="s-prof">Profundidad actual (m)</label>
-            <input id="s-prof" disabled={form.estado !== 'ACTIVA'} min={0} type="number" step="0.1" value={form.profundidadActual} onChange={set('profundidadActual')} placeholder="12.4" />
+            <label htmlFor="s-prof">Lectura actual (m, valor firmado)</label>
+            <input id="s-prof" disabled={form.estado !== 'ACTIVA'} type="number" step="any" value={form.profundidadActual} onChange={set('profundidadActual')} placeholder="Ej. 12.4 o -2.3" />
+            <small>El signo depende de la referencia de medición acordada. Usa negativos solo si tu sonda reporta un nivel relativo firmado.</small>
           </div>
 
           {form.estado !== 'ACTIVA' && <p className="users-note">Las sondas no activas conservan sus lecturas, pero no admiten nuevas mediciones. Para reactivar una sonda retirada selecciona ACTIVA y guarda.</p>}

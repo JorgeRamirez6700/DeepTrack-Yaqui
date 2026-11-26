@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
 
 @RestController
 @RequestMapping("/api/sondas")
@@ -46,6 +48,13 @@ public class SondaController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable String id) {
         sondaService.eliminar(id);
+    }
+
+    @GetMapping("/{id}/historico/intervalo")
+    public List<LecturaPuntoDTO> historicoIntervalo(@PathVariable String id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta) {
+        return sondaService.historicoIntervalo(id, desde, hasta);
     }
 
     /** GET /api/sondas/{id}/historico?rango=dia|semana|mes|6meses|anio */

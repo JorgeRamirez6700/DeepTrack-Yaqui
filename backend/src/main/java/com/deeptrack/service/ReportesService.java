@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -96,11 +97,13 @@ public class ReportesService {
     }
 
     private List<Lectura> consultar(LocalDate desde, LocalDate hasta, Set<String> idsActivos) {
+        if (idsActivos.isEmpty()) return List.of();
+        LocalDateTime ahora = LocalDateTime.now();
         return lecturas.findByFechaHoraGreaterThanEqualAndFechaHoraLessThanOrderByFechaHoraAsc(
                 desde.atStartOfDay(), hasta.atStartOfDay()).stream()
+            .filter(l -> !l.getFechaHora().isAfter(ahora))
             .filter(l -> idsActivos.contains(l.getIdSonda()))
-            .filter(l -> l.getProfundidadM() != null && Double.isFinite(l.getProfundidadM())
-                && l.getProfundidadM() >= 0)
+            .filter(l -> l.getProfundidadM() != null && Double.isFinite(l.getProfundidadM()))
             .toList();
     }
 

@@ -50,6 +50,13 @@ export const api = {
   eliminarSonda: (id) => request(`/sondas/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   historico: (id, rango) =>
     request(`/sondas/${encodeURIComponent(id)}/historico?rango=${encodeURIComponent(rango)}`),
+  historicoIntervalo: (id, { desde, hasta }) =>
+    request('/sondas/' + encodeURIComponent(id) + '/historico/intervalo?' + new URLSearchParams({ desde, hasta })),
+  analisis: ({ desde, hasta }, ids = []) => {
+    const params = new URLSearchParams({ desde, hasta });
+    ids.forEach(id => params.append('ids', id));
+    return request('/estadisticas/analisis?' + params);
+  },
   listarUsuarios: () => request('/usuarios'),
   actualizarUsuario: (id, data) => request(`/usuarios/${encodeURIComponent(id)}`, { method:'PUT', body:JSON.stringify(data) }),
   crearUsuario: (data) => request('/usuarios', { method: 'POST', body: JSON.stringify(data) }),

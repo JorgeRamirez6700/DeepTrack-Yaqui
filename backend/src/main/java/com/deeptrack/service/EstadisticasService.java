@@ -33,7 +33,8 @@ public class EstadisticasService {
 
     @Transactional(readOnly = true)
     public ResumenValleDTO resumen(String periodo) {
-        LocalDate hoy = LocalDate.now();
+        LocalDateTime ahora = LocalDateTime.now();
+        LocalDate hoy = ahora.toLocalDate();
         LocalDate inicio = switch (periodo) {
             case "dia" -> hoy;
             case "semana" -> hoy.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
@@ -49,12 +50,12 @@ public class EstadisticasService {
                 .map(Sonda::getIdSonda)
                 .collect(Collectors.toSet());
 
-        List<Lectura> disponibles = lecturas
+        List<Lectura> disponibles = idsActivos.isEmpty() ? List.of() : lecturas
                 .findByFechaHoraGreaterThanEqualAndFechaHoraLessThanOrderByFechaHoraAsc(desde, hasta)
                 .stream()
+                .filter(l -> !l.getFechaHora().isAfter(ahora))
                 .filter(l -> idsActivos.contains(l.getIdSonda()))
-                .filter(l -> l.getProfundidadM() != null && Double.isFinite(l.getProfundidadM())
-                        && l.getProfundidadM() >= 0)
+                .filter(l -> l.getProfundidadM() != null && Double.isFinite(l.getProfundidadM()))
                 .toList();
 
         Map<String, DoubleSummaryStatistics> porSonda = disponibles.stream()

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -23,13 +24,16 @@ public class SondaService {
     private final SondaRepository sondaRepository;
     private final LecturaRepository lecturaRepository;
     private final double umbralAlertaMetros;
+    private final long vigenciaHoras;
 
     public SondaService(SondaRepository sondaRepository,
                         LecturaRepository lecturaRepository,
-                        @Value("${deeptrack.alerta.umbral-metros:20}") double umbralAlertaMetros) {
+                        @Value("${deeptrack.alerta.umbral-metros:20}") double umbralAlertaMetros,
+                        @Value("${deeptrack.monitoreo.vigencia-horas:0}") long vigenciaHoras) {
         this.sondaRepository = sondaRepository;
         this.lecturaRepository = lecturaRepository;
         this.umbralAlertaMetros = umbralAlertaMetros;
+        this.vigenciaHoras = vigenciaHoras;
     }
 
     /** RF-02 / RF-03: todas las sondas con su última lectura. */
@@ -37,11 +41,12 @@ public class SondaService {
     public List<SondaDTO> listar() {
         List<Sonda> sondas = sondaRepository.findAll();
         if (sondas.isEmpty()) return List.of();
-        Map<String, Double> ultimas = lecturaRepository.findUltimasPorSonda(
+        Map<String, Lectura> ultimas = lecturaRepository.findUltimasPorSonda(
                 sondas.stream().map(Sonda::getIdSonda).toList()).stream()
-                .collect(Collectors.toMap(Lectura::getIdSonda, Lectura::getProfundidadM));
+                .collect(Collectors.toMap(Lectura::getIdSonda, lectura -> lectura));
+        LocalDateTime ahora = LocalDateTime.now();
         return sondas.stream()
-                .map(sonda -> toDto(sonda, ultimas.get(sonda.getIdSonda())))
+                .map(sonda -> toDto(sonda, ultimas.get(sonda.getIdSonda()), ahora))
                 .toList();
     }
 
@@ -53,6 +58,7 @@ public class SondaService {
     /** HU-10: alta de sonda. */
     @Transactional
     public SondaDTO crear(SondaRequest req) {
+        validarLectura(req.profundidadActual());
         String idNormalizado = req.idSonda().trim();
         if (sondaRepository.existsById(idNormalizado)) {
             throw ApiException.conflict("Ya existe una sonda con el ID " + idNormalizado);
@@ -68,6 +74,7 @@ public class SondaService {
     /** HU-11: edición de sonda. El ID no cambia. */
     @Transactional
     public SondaDTO actualizar(String idSonda, SondaRequest req) {
+        validarLectura(req.profundidadActual());
         Sonda sonda = buscar(idSonda);
         aplicarCampos(sonda, req);
         sondaRepository.save(sonda);
@@ -102,9 +109,18 @@ public class SondaService {
             case "anio" -> ahora.minusYears(1);
             default -> throw ApiException.badRequest("Rango inválido. Usa: dia, semana, mes, 6meses o anio");
         };
-        return lecturaRepository.findByIdSondaAndFechaHoraAfterOrderByFechaHoraAsc(idSonda, desde).stream()
+        return lecturaRepository.findByIdSondaAndFechaHoraGreaterThanAndFechaHoraLessThanEqualOrderByFechaHoraAscIdLecturaAsc(idSonda, desde, ahora).stream()
                 .map(l -> new LecturaPuntoDTO(l.getFechaHora(), l.getProfundidadM()))
                 .toList();
+    }
+
+    /** Fechas calendario inclusivas; no incluye registros futuros. */
+    @Transactional(readOnly = true)
+    public List<LecturaPuntoDTO> historicoIntervalo(String idSonda, LocalDate desde, LocalDate hasta) {
+        var intervalo = IntervaloAnalisis.validar(desde, hasta, LocalDateTime.now());
+        buscar(idSonda);
+        return lecturaRepository.findIntervalo(List.of(idSonda), intervalo.inicio(), intervalo.fin(), intervalo.ahora())
+                .stream().map(l -> new LecturaPuntoDTO(l.getFechaHora(), l.getProfundidadM())).toList();
     }
 
     // ---------- helpers ----------
@@ -118,7 +134,15 @@ public class SondaService {
         sonda.setCuadrante(req.cuadrante().trim());
         sonda.setLatitud(req.latitud());
         sonda.setLongitud(req.longitud());
-        sonda.setEstado(req.estado() == null ? "ACTIVA" : req.estado());
+        // Una nueva sonda ya tiene ACTIVA por defecto en la entidad.
+        // Si se omite el estado al editar, se conserva el actual.
+        if (req.estado() != null) sonda.setEstado(req.estado());
+    }
+
+    private static void validarLectura(Double profundidad) {
+        if (profundidad != null && !Double.isFinite(profundidad)) {
+            throw ApiException.badRequest("La lectura debe ser un número finito");
+        }
     }
 
     private void registrarLecturaSiActiva(Sonda sonda, Double profundidad) {
@@ -127,7 +151,7 @@ public class SondaService {
             throw ApiException.badRequest("Solo las sondas ACTIVAS pueden registrar nuevas lecturas");
         }
         String idSonda = sonda.getIdSonda();
-        Double ultima = lecturaRepository.findFirstByIdSondaOrderByFechaHoraDesc(idSonda)
+        Double ultima = lecturaRepository.findFirstByIdSondaOrderByFechaHoraDescIdLecturaDesc(idSonda)
                 .map(Lectura::getProfundidadM).orElse(null);
         if (ultima == null || !ultima.equals(profundidad)) {
             lecturaRepository.save(new Lectura(idSonda, profundidad, LocalDateTime.now()));
@@ -135,14 +159,17 @@ public class SondaService {
     }
 
     private SondaDTO toDto(Sonda s) {
-        Double actual = lecturaRepository.findFirstByIdSondaOrderByFechaHoraDesc(s.getIdSonda())
-                .map(Lectura::getProfundidadM).orElse(null);
-        return toDto(s, actual);
+        Lectura ultima = lecturaRepository.findFirstByIdSondaOrderByFechaHoraDescIdLecturaDesc(s.getIdSonda())
+                .orElse(null);
+        return toDto(s, ultima, LocalDateTime.now());
     }
 
-    private SondaDTO toDto(Sonda s, Double actual) {
-        boolean enAlerta = "ACTIVA".equals(s.getEstado()) && actual != null && actual > umbralAlertaMetros;
+    private SondaDTO toDto(Sonda s, Lectura ultima, LocalDateTime ahora) {
+        Double actual = ultima == null ? null : ultima.getProfundidadM();
+        LocalDateTime fecha = ultima == null ? null : ultima.getFechaHora();
+        boolean enAlerta = "ACTIVA".equals(s.getEstado()) && actual != null
+                && Double.isFinite(actual) && actual > umbralAlertaMetros;
         return new SondaDTO(s.getIdSonda(), s.getCuadrante(), s.getLatitud(), s.getLongitud(),
-                s.getEstado(), actual, enAlerta);
+                s.getEstado(), actual, enAlerta, fecha, VigenciaLectura.evaluar(fecha, ahora, vigenciaHoras));
     }
 }

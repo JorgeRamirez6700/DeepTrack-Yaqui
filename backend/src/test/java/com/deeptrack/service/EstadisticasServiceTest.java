@@ -75,4 +75,26 @@ class EstadisticasServiceTest {
         assertEquals(400, ex.getStatus().value());
         verifyNoInteractions(sondas, lecturas);
     }
+    @Test
+    void incluyeLecturasFirmadasNegativasEnMedias() {
+        when(sondas.findAll()).thenReturn(List.of(sonda("A", "ACTIVA")));
+        LocalDateTime ahora = LocalDateTime.now();
+        when(lecturas.findByFechaHoraGreaterThanEqualAndFechaHoraLessThanOrderByFechaHoraAsc(any(), any()))
+            .thenReturn(List.of(
+                new Lectura("A", -5.0, ahora.minusHours(2)),
+                new Lectura("A", 3.0, ahora.minusHours(1))));
+        ResumenValleDTO resultado = service.resumen("mes");
+        assertEquals(2, resultado.lecturas());
+        assertEquals(-1.0, resultado.profundidadMediaM());
+        assertEquals(-1.0, resultado.minimaMediaPorSondaM());
+    }
+    @Test
+    void sinActivasNoConsultaTablaDeLecturas() {
+        when(sondas.findAll()).thenReturn(List.of(sonda("A", "RETIRADA")));
+        var resumen = service.resumen("mes");
+        assertEquals(0, resumen.sondasActivas());
+        assertEquals(0, resumen.lecturas());
+        assertNull(resumen.profundidadMediaM());
+        verifyNoInteractions(lecturas);
+    }
 }

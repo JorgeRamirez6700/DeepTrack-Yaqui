@@ -84,4 +84,40 @@ class ReportesServiceTest {
             () -> service.tendencia(25)).getStatus().value());
         verifyNoInteractions(sondas, lecturas);
     }
+    @Test
+    void mensualNoDescartaLecturasFirmadasNegativas() {
+        YearMonth mes = YearMonth.now().minusMonths(1);
+        when(sondas.findAll()).thenReturn(List.of(sonda("A", "ACTIVA")));
+        when(lecturas.findByFechaHoraGreaterThanEqualAndFechaHoraLessThanOrderByFechaHoraAsc(any(), any()))
+            .thenReturn(List.of(
+                new Lectura("A", -7.0, mes.atDay(2).atStartOfDay()),
+                new Lectura("A", 3.0, mes.atDay(3).atStartOfDay())));
+        ResumenMensualDTO resultado = service.reporte(mes.getYear(), mes.getMonthValue());
+        assertEquals(2, resultado.lecturas());
+        assertEquals(-2.0, resultado.profundidadMediaM());
+        assertEquals(-7.0, resultado.sondas().get(0).minimoM());
+    }
+
+    @Test
+    void tendenciaIncluyeLecturasFirmadasNegativas() {
+        when(sondas.findAll()).thenReturn(List.of(sonda("A", "ACTIVA")));
+        when(lecturas.findByFechaHoraGreaterThanEqualAndFechaHoraLessThanOrderByFechaHoraAsc(any(), any()))
+            .thenReturn(List.of(
+                new Lectura("A", -6.0, YearMonth.now().atDay(1).atStartOfDay())));
+        TendenciaMensualDTO resultado = service.tendencia(6);
+        assertEquals(-6.0, resultado.meses().get(5).profundidadMediaM());
+    }
+    @Test
+    void sinActivasNoConsultaLecturasYConservaMesesVacios() {
+        when(sondas.findAll()).thenReturn(List.of(sonda("A", "RETIRADA")));
+        YearMonth mes = YearMonth.now();
+        var reporte = service.reporte(mes.getYear(), mes.getMonthValue());
+        assertEquals(0, reporte.lecturas());
+        assertTrue(reporte.sondas().isEmpty());
+        assertNull(reporte.profundidadMediaM());
+        var tendencia = service.tendencia(6);
+        assertEquals(6, tendencia.meses().size());
+        assertTrue(tendencia.meses().stream().allMatch(p -> p.profundidadMediaM() == null));
+        verifyNoInteractions(lecturas);
+    }
 }

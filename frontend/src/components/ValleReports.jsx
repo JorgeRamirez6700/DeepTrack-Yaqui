@@ -2,18 +2,12 @@ import { useEffect, useState } from 'react';
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 import { api } from '../services/api.js';
 import { useTheme } from './ThemeProvider.jsx';
+import { csvCell } from '../utils/csvCell.js';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio',
   'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const now = new Date();
 const fmt = (n) => n == null ? 'Sin datos' : `${n.toFixed(2)} m`;
-
-// Protege celdas frente a interpretacion de formulas al abrir CSV con Excel.
-function csvCell(value) {
-  let text = value == null ? '' : String(value);
-  if (/^[\s]*[=+@\-\t\r]/.test(text)) text = "'" + text;
-  return '"' + text.replace(/"/g, '""') + '"';
-}
 
 function exportarCsv(datos) {
   const filas = [
@@ -111,7 +105,7 @@ export default function ValleReports({ mode = 'all', revision = 0 }) {
             </ResponsiveContainer>
           </div>
         )}
-        <p className="valle-nota">Los meses sin lecturas aparecen sin valor. Una profundidad mayor indica un espejo de agua más profundo; no representa por sí sola el estado de todo el acuífero.</p>
+        <p className="valle-nota">Los meses sin lecturas aparecen sin valor. Las lecturas negativas se conservan si la sonda usa referencia firmada; no representan por sí solas el estado del acuífero.</p>
       </div>}
 
       {showReport && <div className="valle-report-print" id="reporte-mensual-deeptrack">
@@ -154,7 +148,7 @@ export default function ValleReports({ mode = 'all', revision = 0 }) {
                 </tr>)}</tbody>
               </table>
             </div>
-            <p className="valle-nota">Las sondas sin lecturas permanecen visibles. Los promedios son descriptivos y se calculan para cada sonda antes de consolidarlos. No representan una estimación hidrológica espacial.</p>
+            <p className="valle-nota">Las sondas sin lecturas permanecen visibles. Los valores firmados, incluidos los negativos, se incluyen en los promedios. Interprétalos solo con una referencia de medición consistente; no representan una estimación hidrológica espacial.</p>
             <div className="report-actions no-print">
               <button className="btn-small" type="button" onClick={() => exportarCsv(reporte)}>Exportar CSV (Excel)</button>
               <button className="btn-small" type="button" onClick={() => window.print()}>Imprimir / Guardar PDF</button>

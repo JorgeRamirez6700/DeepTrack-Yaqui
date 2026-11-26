@@ -52,7 +52,7 @@ export default function ValleSummary({ revision = 0 }) {
             <div><small>Lecturas del periodo</small><strong>{resumen.lecturas}</strong></div>
             <div><small>Menor / mayor media por sonda</small><strong>{fmt(resumen.minimaMediaPorSondaM)} / {fmt(resumen.maximaMediaPorSondaM)}</strong></div>
           </div>
-          <p className="valle-nota">Del {resumen.desde} al {resumen.hasta}. Se calcula una media por sonda y después una media entre las sondas con datos. No equivale al nivel general del acuífero.</p>
+          <p className="valle-nota">Del {resumen.desde} al {resumen.hasta}. Se calcula una media por sonda y después una media entre las sondas con datos. Incluye valores negativos cuando corresponden a mediciones firmadas. No equivale al nivel general del acuífero.</p>
         </>
       )}
     </section>

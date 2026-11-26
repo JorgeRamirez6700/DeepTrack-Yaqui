@@ -1,11 +1,14 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api.js';
+import { condicionSonda, filtrarSondas } from '../utils/filtrarSondas.js';
+import { crearCargaVigente } from '../utils/cargaVigente.js';
 const MapView = lazy(() => import('./MapView.jsx'));
 import SondaPanel from './SondaPanel.jsx';
 import SondaForm from './SondaForm.jsx';
 const TrendModal = lazy(() => import('./TrendModal.jsx'));
 import ValleSummary from './ValleSummary.jsx';
 const ValleReports = lazy(() => import('./ValleReports.jsx'));
+const AnalisisAvanzado = lazy(() => import('./AnalisisAvanzado.jsx'));
 const UsuariosPanel = lazy(() => import('./UsuariosPanel.jsx'));
 import { ThemeSelector } from './ThemeProvider.jsx';
 
@@ -40,21 +43,27 @@ export default function Dashboard({ user, onLogout }) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [stateFilter, setStateFilter] = useState('all');
+  const [vigenciaFilter, setVigenciaFilter] = useState('all');
   useEffect(() => { if (!notice) return; const timer = setTimeout(() => setNotice(null), 4500); return () => clearTimeout(timer); }, [notice]);
 
-  const cargar = useCallback(async () => {
-    setLoading(true);
-    try {
-      setSondas(await api.listarSondas());
+  const carga = useMemo(() => crearCargaVigente({
+    consultar: api.listarSondas,
+    alInicio: () => setLoading(true),
+    alExito: datos => {
+      setSondas(datos);
       setLoadError('');
       setLastUpdate(new Date());
       setRevision(n => n + 1);
-    } catch (err) {
-      setLoadError(err.message);
-    } finally { setLoading(false); }
-  }, []);
+    },
+    alError: err => setLoadError(err.message),
+    alFinal: () => setLoading(false),
+  }), []);
+  const cargar = carga.ejecutar;
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    cargar();
+    return carga.invalidar;
+  }, [carga, cargar]);
   useEffect(() => {
     try { localStorage.setItem('deeptrack-sidebar-collapsed', String(collapsed)); }
     catch { /* almacenamiento no disponible */ }
@@ -107,13 +116,20 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const activa = pages.find((item) => item.id === page) || pages[0];
-  const activas = sondas.filter((s) => s.estado === 'ACTIVA').length;
-  const alertas = sondas.filter((s) => s.enAlerta).length;
-  const visible = useMemo(() => sondas.filter(s => {
-    const matches = `${s.idSonda} ${s.cuadrante}`.toLowerCase().includes(query.trim().toLowerCase());
-    const alertMatches = filter === 'all' || (filter === 'alert' ? s.enAlerta : !s.enAlerta && s.profundidadActual != null);
-    return matches && alertMatches && (stateFilter === 'all' || s.estado === stateFilter);
-  }), [sondas, query, filter, stateFilter]);
+  const { activas, alertas, atrasadas } = useMemo(() => {
+    let activas = 0;
+    let alertas = 0;
+    let atrasadas = 0;
+    for (const sonda of sondas) {
+      if (sonda.estado === 'ACTIVA') {
+        activas++;
+        if (sonda.vigenciaLectura === 'ATRASADA') atrasadas++;
+      }
+      if (condicionSonda(sonda) === 'alert') alertas++;
+    }
+    return { activas, alertas, atrasadas };
+  }, [sondas]);
+  const visible = useMemo(() => filtrarSondas(sondas, query, filter, stateFilter, vigenciaFilter), [sondas, query, filter, stateFilter, vigenciaFilter]);
   const mapaPanel = (
     <div className="dash-body">
       <Suspense fallback={<div className="map-wrap app-loading" role="status">Cargando mapa…</div>}>
@@ -124,6 +140,7 @@ export default function Dashboard({ user, onLogout }) {
         sondas={visible}
         total={sondas.length} query={query} onQuery={setQuery}
         filter={filter} onFilter={setFilter} stateFilter={stateFilter} onStateFilter={setStateFilter}
+        vigenciaFilter={vigenciaFilter} onVigenciaFilter={setVigenciaFilter}
         onNew={() => setFormState({ sonda: null })}
         onEdit={(s) => setFormState({ sonda: s })}
         onDelete={handleDelete}
@@ -201,10 +218,11 @@ export default function Dashboard({ user, onLogout }) {
 
           {page === 'inicio' && (
             <>
-              <div className="overview-cards">
+              <div className="overview-cards monitor-overview">
                 <div className="overview-card"><span>Sondas registradas</span><strong>{lastUpdate ? sondas.length : '—'}</strong><small>Dispositivos en el sistema</small></div>
                 <div className="overview-card"><span>Sondas activas</span><strong>{lastUpdate ? activas : '—'}</strong><small>Disponibles para monitoreo</small></div>
-                <div className="overview-card"><span>Alertas de profundidad</span><strong>{lastUpdate ? alertas : '—'}</strong><small>Según umbral de desarrollo</small></div>
+                <div className="overview-card"><span>Alertas de profundidad</span><strong>{lastUpdate ? alertas : '—'}</strong><small>Según umbral de desarrollo (sondas activas)</small></div>
+                <div className="overview-card"><span>Lecturas atrasadas</span><strong>{lastUpdate ? atrasadas : '—'}</strong><small>Sondas activas · vigencia al consultar</small></div>
               </div>
               <ValleSummary revision={revision} />
               <div className="section-heading"><h2>Mapa y sondas</h2>
@@ -220,6 +238,9 @@ export default function Dashboard({ user, onLogout }) {
             <>
               <ValleSummary revision={revision} />
               <Suspense fallback={<div className="app-loading" role="status">Cargando estadísticas…</div>}><ValleReports mode="trend" revision={revision} /></Suspense>
+              <Suspense fallback={<div className="app-loading" role="status">Cargando análisis…</div>}>
+                <AnalisisAvanzado sondas={sondas} revision={revision} />
+              </Suspense>
             </>
           )}
 
@@ -242,7 +263,7 @@ export default function Dashboard({ user, onLogout }) {
       {formState && <SondaForm
         sonda={formState.sonda} onSave={handleSave} onDelete={handleDelete}
         onClose={() => setFormState(null)} />}
-      {trendSonda && <Suspense fallback={<div className="app-loading" role="status">Cargando histórico de la sonda…</div>}><TrendModal sonda={trendSonda} onClose={() => setTrendSonda(null)} /></Suspense>}
+      {trendSonda && <Suspense fallback={<div className="app-loading" role="status">Cargando histórico de la sonda…</div>}><TrendModal sonda={sondas.find(s => s.idSonda === trendSonda.idSonda) ?? trendSonda} revision={revision} onClose={() => setTrendSonda(null)} /></Suspense>}
     </div>
   );
 }

@@ -1,10 +1,14 @@
 import { memo, useMemo, useState } from 'react';
 import { useTheme } from './ThemeProvider.jsx';
+import { condicionSonda } from '../utils/filtrarSondas.js';
+import { etiquetaVigencia, fechaRegistrada } from '../utils/monitoreoSonda.js';
 import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from '@react-google-maps/api';
 
 // Centro aproximado del Valle del Yaqui, Sonora.
 const CENTER = { lat: 27.32, lng: -109.95 };
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const COLORES = { inactive: '#81939b', missing: '#81939b', alert: '#B5502E', normal: '#2E6E7E' };
+const ESTADOS = { alert: 'Alerta — umbral superado', missing: 'Sin datos', normal: 'Normal' };
 
 function MapView({ sondas, onSelect }) {
   return (
@@ -31,9 +35,6 @@ function LoadedMap({ sondas, onSelect }) {
   const [hoverId, setHover] = useState(null);
   const hover = sondas.find(s => s.idSonda === hoverId);
 
-  if (loadError) return <div className="map-placeholder">No se pudo cargar Google Maps.</div>;
-  if (!isLoaded) return <div className="map-placeholder">Cargando mapa…</div>;
-
   const mapOptions = useMemo(() => ({
     mapTypeId: 'roadmap', streetViewControl: false, fullscreenControl: false,
     styles: theme === 'dark' ? [
@@ -46,10 +47,13 @@ function LoadedMap({ sondas, onSelect }) {
     ] : [],
   }), [theme]);
 
+  if (loadError) return <div className="map-placeholder">No se pudo cargar Google Maps.</div>;
+  if (!isLoaded) return <div className="map-placeholder">Cargando mapa…</div>;
+
   const icon = (sonda) => ({
     path: window.google.maps.SymbolPath.CIRCLE,
     scale: 9,
-    fillColor: sonda.estado !== 'ACTIVA' ? '#81939b' : sonda.enAlerta ? '#B5502E' : sonda.profundidadActual == null ? '#81939b' : '#2E6E7E',
+    fillColor: COLORES[condicionSonda(sonda)],
     fillOpacity: 1,
     strokeColor: '#FFFFFF',
     strokeWeight: 2,
@@ -80,7 +84,9 @@ function LoadedMap({ sondas, onSelect }) {
             <strong>{hover.idSonda}</strong>
             <div>Cuadrante: {hover.cuadrante}</div>
             <div>Profundidad: {hover.profundidadActual ?? '—'} m</div>
-            <div>Estado: {hover.estado !== 'ACTIVA' ? hover.estado : hover.enAlerta ? 'Alerta — umbral superado' : hover.profundidadActual == null ? 'Sin datos' : 'Normal'}</div>
+            <div>Estado: {ESTADOS[condicionSonda(hover)] ?? hover.estado}</div>
+            <div>Última medición: {fechaRegistrada(hover.ultimaLecturaFechaHora)}</div>
+            <div>Vigencia: {etiquetaVigencia(hover)}</div>
           </div>
         </InfoWindow>
       )}
