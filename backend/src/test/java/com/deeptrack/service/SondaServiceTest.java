@@ -34,7 +34,7 @@ class SondaServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new SondaService(sondaRepository, lecturaRepository, 20.0);
+        service = new SondaService(sondaRepository, lecturaRepository, 20.0, 48);
     }
 
     private Sonda sonda(String id) {
@@ -76,14 +76,14 @@ class SondaServiceTest {
     @Test
     void historicoAceptaRangoDia() {
         when(sondaRepository.findById("SN-3")).thenReturn(Optional.of(sonda("SN-3")));
-        when(lecturaRepository.findByIdSondaAndFechaHoraAfterOrderByFechaHoraAsc(eq("SN-3"), any(LocalDateTime.class)))
+        when(lecturaRepository.findByIdSondaAndFechaHoraGreaterThanAndFechaHoraLessThanEqualOrderByFechaHoraAscIdLecturaAsc(eq("SN-3"), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(List.of());
 
         LocalDateTime antes = LocalDateTime.now().minusDays(1);
         assertTrue(service.historico("SN-3", "dia").isEmpty());
         LocalDateTime despues = LocalDateTime.now().minusDays(1);
         ArgumentCaptor<LocalDateTime> captor = ArgumentCaptor.forClass(LocalDateTime.class);
-        verify(lecturaRepository).findByIdSondaAndFechaHoraAfterOrderByFechaHoraAsc(eq("SN-3"), captor.capture());
+        verify(lecturaRepository).findByIdSondaAndFechaHoraGreaterThanAndFechaHoraLessThanEqualOrderByFechaHoraAscIdLecturaAsc(eq("SN-3"), captor.capture(), any(LocalDateTime.class));
         assertFalse(captor.getValue().isBefore(antes));
         assertFalse(captor.getValue().isAfter(despues));
     }
@@ -91,14 +91,14 @@ class SondaServiceTest {
     @Test
     void historicoAceptaRangoSemana() {
         when(sondaRepository.findById("SN-3")).thenReturn(Optional.of(sonda("SN-3")));
-        when(lecturaRepository.findByIdSondaAndFechaHoraAfterOrderByFechaHoraAsc(eq("SN-3"), any(LocalDateTime.class)))
+        when(lecturaRepository.findByIdSondaAndFechaHoraGreaterThanAndFechaHoraLessThanEqualOrderByFechaHoraAscIdLecturaAsc(eq("SN-3"), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(List.of());
 
         LocalDateTime antes = LocalDateTime.now().minusWeeks(1);
         assertTrue(service.historico("SN-3", "semana").isEmpty());
         LocalDateTime despues = LocalDateTime.now().minusWeeks(1);
         ArgumentCaptor<LocalDateTime> captor = ArgumentCaptor.forClass(LocalDateTime.class);
-        verify(lecturaRepository).findByIdSondaAndFechaHoraAfterOrderByFechaHoraAsc(eq("SN-3"), captor.capture());
+        verify(lecturaRepository).findByIdSondaAndFechaHoraGreaterThanAndFechaHoraLessThanEqualOrderByFechaHoraAscIdLecturaAsc(eq("SN-3"), captor.capture(), any(LocalDateTime.class));
         assertFalse(captor.getValue().isBefore(antes));
         assertFalse(captor.getValue().isAfter(despues));
     }
@@ -140,7 +140,7 @@ class SondaServiceTest {
         Sonda s = sonda("SN-RET");
         s.setEstado("RETIRADA");
         when(sondaRepository.findById("SN-RET")).thenReturn(Optional.of(s));
-        when(lecturaRepository.findByIdSondaAndFechaHoraAfterOrderByFechaHoraAsc(eq("SN-RET"), any(LocalDateTime.class)))
+        when(lecturaRepository.findByIdSondaAndFechaHoraGreaterThanAndFechaHoraLessThanEqualOrderByFechaHoraAscIdLecturaAsc(eq("SN-RET"), any(LocalDateTime.class), any(LocalDateTime.class)))
             .thenReturn(List.of(new Lectura("SN-RET", 13.5, LocalDateTime.now().minusDays(1))));
         assertEquals(1, service.historico("SN-RET", "mes").size());
     }
@@ -211,4 +211,20 @@ class SondaServiceTest {
         }
     }
 
+    @Test
+    void listadoIncluyeFechaYVigenciaSinConsultasAdicionales() {
+        LocalDateTime fecha = LocalDateTime.now().minusHours(72);
+        when(sondaRepository.findAll()).thenReturn(List.of(sonda("A"), sonda("B")));
+        when(lecturaRepository.findUltimasPorSonda(any()))
+            .thenReturn(List.of(new Lectura("A", 25.0, fecha)));
+        var resultado = service.listar();
+        assertEquals(fecha, resultado.get(0).ultimaLecturaFechaHora());
+        assertEquals("ATRASADA", resultado.get(0).vigenciaLectura());
+        assertTrue(resultado.get(0).enAlerta());
+        assertNull(resultado.get(1).ultimaLecturaFechaHora());
+        assertEquals("SIN_DATOS", resultado.get(1).vigenciaLectura());
+        verify(lecturaRepository).findUltimasPorSonda(any());
+        org.mockito.Mockito.verify(lecturaRepository, org.mockito.Mockito.never())
+            .findFirstByIdSondaOrderByFechaHoraDescIdLecturaDesc(any());
+    }
 }

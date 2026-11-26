@@ -96,11 +96,32 @@ class RetiroSondaIntegrationTest {
         entityManager.clear();
 
         assertEquals(-4.0, service.obtener(id).profundidadActual());
+        assertEquals(fecha, service.obtener(id).ultimaLecturaFechaHora());
+        assertEquals(fecha, service.listar().stream().filter(d -> d.idSonda().equals(id))
+            .findFirst().orElseThrow().ultimaLecturaFechaHora());
         assertEquals(-4.0, service.listar().stream()
             .filter(d -> d.idSonda().equals(id)).findFirst().orElseThrow().profundidadActual());
         assertEquals(-4.0, service.actualizar(id,
             new SondaRequest(id, "QA", 27.35, -109.93, "ACTIVA", -4.0)).profundidadActual());
         entityManager.flush();
         assertEquals(2L, lecturas.count());
+    }
+    @Test
+    void historicoExcluyeLecturasFuturasYOrdenaEmpates() {
+        String id = "QA-FECHAS";
+        Sonda s = new Sonda();
+        s.setIdSonda(id);
+        s.setCuadrante("QA");
+        s.setLatitud(27.35);
+        s.setLongitud(-109.93);
+        sondas.saveAndFlush(s);
+        LocalDateTime fecha = LocalDateTime.now().minusHours(1).withNano(0);
+        lecturas.saveAndFlush(new Lectura(id, 1.0, fecha));
+        lecturas.saveAndFlush(new Lectura(id, 2.0, fecha));
+        lecturas.saveAndFlush(new Lectura(id, 99.0, fecha.plusDays(2)));
+        entityManager.clear();
+        assertEquals(java.util.List.of(1.0, 2.0), service.historico(id, "dia").stream()
+            .map(p -> p.profundidadM()).toList());
+        assertEquals("FECHA_FUTURA", service.obtener(id).vigenciaLectura());
     }
 }

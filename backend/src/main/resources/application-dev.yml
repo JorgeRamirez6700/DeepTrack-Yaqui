@@ -15,3 +15,8 @@ spring:
     console:
       enabled: false
       path: /h2-console
+
+# Umbral de demostración; no indica conectividad física de la sonda.
+deeptrack:
+  monitoreo:
+    vigencia-horas: ${DEEPTRACK_VIGENCIA_HORAS:48}

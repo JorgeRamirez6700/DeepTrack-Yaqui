@@ -1,6 +1,7 @@
 import { memo, useMemo, useState } from 'react';
 import { useTheme } from './ThemeProvider.jsx';
 import { condicionSonda } from '../utils/filtrarSondas.js';
+import { etiquetaVigencia, fechaRegistrada } from '../utils/monitoreoSonda.js';
 import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from '@react-google-maps/api';
 
 // Centro aproximado del Valle del Yaqui, Sonora.
@@ -84,6 +85,8 @@ function LoadedMap({ sondas, onSelect }) {
             <div>Cuadrante: {hover.cuadrante}</div>
             <div>Profundidad: {hover.profundidadActual ?? '—'} m</div>
             <div>Estado: {ESTADOS[condicionSonda(hover)] ?? hover.estado}</div>
+            <div>Última medición: {fechaRegistrada(hover.ultimaLecturaFechaHora)}</div>
+            <div>Vigencia: {etiquetaVigencia(hover)}</div>
           </div>
         </InfoWindow>
       )}

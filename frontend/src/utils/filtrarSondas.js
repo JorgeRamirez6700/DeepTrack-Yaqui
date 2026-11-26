@@ -11,11 +11,12 @@ export function condicionSonda(sonda) {
  * condición = alerta / normal / sin datos, aplicable solo a sondas ACTIVAS.
  * "Todas" preserva el acceso a los históricos de sondas no activas.
  */
-export function filtrarSondas(sondas, query = '', filter = 'all', stateFilter = 'all') {
+export function filtrarSondas(sondas, query = '', filter = 'all', stateFilter = 'all', vigenciaFilter = 'all') {
   const texto = query.trim().toLocaleLowerCase('es');
   return sondas.filter(s => {
     if (!`${s.idSonda} ${s.cuadrante}`.toLocaleLowerCase('es').includes(texto)) return false;
     if (stateFilter !== 'all' && s.estado !== stateFilter) return false;
+    if (vigenciaFilter !== 'all' && (s.vigenciaLectura ?? 'SIN_CRITERIO') !== vigenciaFilter) return false;
     return filter === 'all' || (
       filter !== 'inactive' && condicionSonda(s) === filter
     );

@@ -65,6 +65,13 @@ test('flujo real: decimales, CSV, filtros, retiro y reactivación sin pérdida d
   await abrirMapa(page);
   await fila(page, id).getByRole('button', { name: 'Ver tendencia' }).click();
   await expect(page.getByRole('dialog')).toContainText('-2.35 m');
+  const indicadores = page.getByRole('region', { name: 'Indicadores del periodo' });
+  await expect(indicadores).toContainText('12.34 m');
+  await expect(indicadores).toContainText('-14.69 m');
+  const detalle = await (await page.request.get('/api/sondas/' + id)).json();
+  expect(detalle.ultimaLecturaFechaHora).toBeTruthy();
+  expect(detalle.vigenciaLectura).toBe('RECIENTE');
+  await expect(page.getByRole('region', { name: 'Última medición' })).toContainText('Lectura reciente');
   await expect(page.locator('.recharts-line')).toBeVisible();
   await page.getByRole('button', { name: 'Último año', exact: true }).click();
   await expect(page.locator('.recharts-line')).toBeVisible();
@@ -140,4 +147,39 @@ test('analista no puede acceder a gestión de usuarios', async ({ page }) => {
   await page.getByRole('button', { name: 'Cerrar sesión', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Iniciar sesión', exact: true })).toBeVisible();
   expect((await page.request.get('/api/sondas')).status()).toBe(401);
+});
+
+test('sonda sin mediciones y filtro de vigencia independiente', async ({ page }) => {
+  await login(page);
+  await abrirMapa(page);
+  const id = 'QA-E2E-SIN-DATOS';
+  await page.getByRole('button', { name: '+ Nueva', exact: true }).click();
+  await page.locator('#s-id').fill(id);
+  await page.locator('#s-cuadrante').fill('QA');
+  await page.locator('#s-lat').fill('27.35');
+  await page.locator('#s-lng').fill('-109.95');
+  await guardar(page);
+  await expect(fila(page, id)).toContainText('Sin mediciones');
+  await page.getByRole('combobox', { name: 'Vigencia de la lectura', exact: true }).selectOption('SIN_DATOS');
+  await expect(fila(page, id)).toBeVisible();
+  await page.getByRole('combobox', { name: 'Condición (sondas activas)', exact: true }).selectOption('normal');
+  await expect(fila(page, id)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Limpiar filtros' }).click();
+  await fila(page, id).getByRole('button', { name: 'Ver tendencia' }).click();
+  await expect(page.getByText('Sin lecturas válidas en el periodo seleccionado.')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Indicadores del periodo' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Cerrar', exact: true }).click();
+
+  // Respuesta controlada para el caso de vigencia atrasada; la regla de fecha
+  // se prueba aparte en Java con reloj fijo y en el listado H2.
+  const sondas = await (await page.request.get('/api/sondas')).json();
+  const anterior = 'SN-YQ-012';
+  const respuesta = sondas.map(s => s.idSonda === anterior
+    ? { ...s, vigenciaLectura: 'ATRASADA', ultimaLecturaFechaHora: '2026-01-01T12:00:00' } : s);
+  await page.route('**/api/sondas', route => route.fulfill({ json: respuesta }));
+  await page.getByRole('button', { name: /Actualizar datos/ }).click();
+  await expect(fila(page, anterior)).toContainText('Lectura atrasada');
+  await page.getByRole('combobox', { name: 'Vigencia de la lectura', exact: true }).selectOption('ATRASADA');
+  await expect(fila(page, anterior)).toBeVisible();
+  await expect(fila(page, id)).toHaveCount(0);
 });

@@ -42,6 +42,7 @@ export default function Dashboard({ user, onLogout }) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [stateFilter, setStateFilter] = useState('all');
+  const [vigenciaFilter, setVigenciaFilter] = useState('all');
   useEffect(() => { if (!notice) return; const timer = setTimeout(() => setNotice(null), 4500); return () => clearTimeout(timer); }, [notice]);
 
   const carga = useMemo(() => crearCargaVigente({
@@ -114,16 +115,20 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const activa = pages.find((item) => item.id === page) || pages[0];
-  const { activas, alertas } = useMemo(() => {
+  const { activas, alertas, atrasadas } = useMemo(() => {
     let activas = 0;
     let alertas = 0;
+    let atrasadas = 0;
     for (const sonda of sondas) {
-      if (sonda.estado === 'ACTIVA') activas++;
+      if (sonda.estado === 'ACTIVA') {
+        activas++;
+        if (sonda.vigenciaLectura === 'ATRASADA') atrasadas++;
+      }
       if (condicionSonda(sonda) === 'alert') alertas++;
     }
-    return { activas, alertas };
+    return { activas, alertas, atrasadas };
   }, [sondas]);
-  const visible = useMemo(() => filtrarSondas(sondas, query, filter, stateFilter), [sondas, query, filter, stateFilter]);
+  const visible = useMemo(() => filtrarSondas(sondas, query, filter, stateFilter, vigenciaFilter), [sondas, query, filter, stateFilter, vigenciaFilter]);
   const mapaPanel = (
     <div className="dash-body">
       <Suspense fallback={<div className="map-wrap app-loading" role="status">Cargando mapa…</div>}>
@@ -134,6 +139,7 @@ export default function Dashboard({ user, onLogout }) {
         sondas={visible}
         total={sondas.length} query={query} onQuery={setQuery}
         filter={filter} onFilter={setFilter} stateFilter={stateFilter} onStateFilter={setStateFilter}
+        vigenciaFilter={vigenciaFilter} onVigenciaFilter={setVigenciaFilter}
         onNew={() => setFormState({ sonda: null })}
         onEdit={(s) => setFormState({ sonda: s })}
         onDelete={handleDelete}
@@ -211,10 +217,11 @@ export default function Dashboard({ user, onLogout }) {
 
           {page === 'inicio' && (
             <>
-              <div className="overview-cards">
+              <div className="overview-cards monitor-overview">
                 <div className="overview-card"><span>Sondas registradas</span><strong>{lastUpdate ? sondas.length : '—'}</strong><small>Dispositivos en el sistema</small></div>
                 <div className="overview-card"><span>Sondas activas</span><strong>{lastUpdate ? activas : '—'}</strong><small>Disponibles para monitoreo</small></div>
                 <div className="overview-card"><span>Alertas de profundidad</span><strong>{lastUpdate ? alertas : '—'}</strong><small>Según umbral de desarrollo (sondas activas)</small></div>
+                <div className="overview-card"><span>Lecturas atrasadas</span><strong>{lastUpdate ? atrasadas : '—'}</strong><small>Sondas activas · vigencia al consultar</small></div>
               </div>
               <ValleSummary revision={revision} />
               <div className="section-heading"><h2>Mapa y sondas</h2>
@@ -252,7 +259,7 @@ export default function Dashboard({ user, onLogout }) {
       {formState && <SondaForm
         sonda={formState.sonda} onSave={handleSave} onDelete={handleDelete}
         onClose={() => setFormState(null)} />}
-      {trendSonda && <Suspense fallback={<div className="app-loading" role="status">Cargando histórico de la sonda…</div>}><TrendModal sonda={trendSonda} onClose={() => setTrendSonda(null)} /></Suspense>}
+      {trendSonda && <Suspense fallback={<div className="app-loading" role="status">Cargando histórico de la sonda…</div>}><TrendModal sonda={sondas.find(s => s.idSonda === trendSonda.idSonda) ?? trendSonda} revision={revision} onClose={() => setTrendSonda(null)} /></Suspense>}
     </div>
   );
 }

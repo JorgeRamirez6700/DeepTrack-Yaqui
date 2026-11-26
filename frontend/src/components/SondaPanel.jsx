@@ -1,16 +1,18 @@
 import { condicionSonda } from '../utils/filtrarSondas.js';
+import { VIGENCIAS, etiquetaVigencia, fechaRegistrada } from '../utils/monitoreoSonda.js';
 
 const CLASES = { inactive: 'unknown', missing: 'unknown', normal: 'ok', alert: 'alert' };
 const ETIQUETAS = { missing: 'SIN DATOS', normal: 'NORMAL', alert: 'ALERTA' };
 
 export default function SondaPanel({
   sondas, onNew, onEdit, onDelete, onTrend, canManage = false,
-  total, query, onQuery, filter, onFilter, stateFilter, onStateFilter,
+  total, query, onQuery, filter, onFilter, stateFilter, onStateFilter, vigenciaFilter, onVigenciaFilter,
 }) {
   const limpiarFiltros = () => {
     onQuery('');
     onFilter('all');
     onStateFilter('all');
+    onVigenciaFilter('all');
   };
 
   return (
@@ -46,6 +48,14 @@ export default function SondaPanel({
             <option>RETIRADA</option>
           </select>
         </label>
+        <label className="vigencia-filter">
+          Vigencia de la lectura
+          <select aria-label="Vigencia de la lectura" value={vigenciaFilter}
+            onChange={e => onVigenciaFilter(e.target.value)}>
+            <option value="all">Todas</option>
+            {Object.entries(VIGENCIAS).map(([valor, texto]) => <option key={valor} value={valor}>{texto}</option>)}
+          </select>
+        </label>
         <small role="status">{sondas.length} de {total} sondas</small>
         <button type="button" className="btn-small" onClick={limpiarFiltros}>Limpiar filtros</button>
       </div>
@@ -66,6 +76,12 @@ export default function SondaPanel({
             </div>
             <div className="meta">
               Cuadrante {s.cuadrante} · {Number.isFinite(s.profundidadActual) ? s.profundidadActual : '—'} m · {s.estado}
+            </div>
+            <div className="sonda-vigencia">
+              <span>Última medición: {fechaRegistrada(s.ultimaLecturaFechaHora)}</span>
+              <span className={s.vigenciaLectura === 'ATRASADA' || s.vigenciaLectura === 'FECHA_FUTURA' ? 'vigencia-aviso' : ''}>
+                {etiquetaVigencia(s)}
+              </span>
             </div>
             <div className="row-actions">
               {canManage && (
