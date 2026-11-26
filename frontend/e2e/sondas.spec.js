@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { readSheet } from 'read-excel-file/node';
 
 async function login(page, usuario = 'admin', password = 'admin123') {
   await page.goto('/');
@@ -73,6 +74,25 @@ test('flujo real: decimales, CSV, filtros, retiro y reactivación sin pérdida d
   expect(detalle.vigenciaLectura).toBe('RECIENTE');
   await expect(page.getByRole('region', { name: 'Última medición' })).toContainText('Lectura reciente');
   await expect(page.locator('.recharts-line')).toBeVisible();
+  const xlsxEvento = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Exportar Excel', exact: true }).click();
+  const xlsx = await xlsxEvento;
+  expect(xlsx.suggestedFilename()).toMatch(/^DeepTrack-QA-E2E-DECIMAL-mes-.*\.xlsx$/);
+  const archivoExcel = await xlsx.path();
+  const filas = await readSheet(archivoExcel, 'Lecturas');
+  expect(filas.slice(1).map(f => f[1])).toEqual([12.34, -2.35]);
+  const resumenExcel = Object.fromEntries((await readSheet(archivoExcel, 'Resumen')).slice(1));
+  expect(resumenExcel['Periodo seleccionado']).toBe('Último mes');
+  expect(resumenExcel['Lecturas válidas']).toBe(2);
+  expect(resumenExcel['Variación última - primera (m)']).toBeCloseTo(-14.69);
+  const pdfEvento = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Exportar PDF', exact: true }).click();
+  const pdf = await pdfEvento;
+  expect(pdf.suggestedFilename()).toMatch(/^DeepTrack-QA-E2E-DECIMAL-mes-.*\.pdf$/);
+  const pdfContenido = (await readFile(await pdf.path())).toString('latin1');
+  expect(pdfContenido.startsWith('%PDF-')).toBeTruthy();
+  expect(pdfContenido).toContain('QA-E2E-DECIMAL');
+  expect(pdfContenido).toContain('-14.69 m');
   await page.getByRole('button', { name: 'Último año', exact: true }).click();
   await expect(page.locator('.recharts-line')).toBeVisible();
   await page.getByRole('button', { name: 'Cerrar', exact: true }).click();
@@ -167,6 +187,8 @@ test('sonda sin mediciones y filtro de vigencia independiente', async ({ page })
   await page.getByRole('button', { name: 'Limpiar filtros' }).click();
   await fila(page, id).getByRole('button', { name: 'Ver tendencia' }).click();
   await expect(page.getByText('Sin lecturas válidas en el periodo seleccionado.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Exportar PDF', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Exportar Excel', exact: true })).toBeDisabled();
   await expect(page.getByRole('region', { name: 'Indicadores del periodo' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Cerrar', exact: true }).click();
 

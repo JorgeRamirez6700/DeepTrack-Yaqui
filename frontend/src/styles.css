@@ -428,3 +428,8 @@ button:disabled { cursor: not-allowed; }
   .modal.trend-detail { padding: 20px 16px; }
   .trend-detail .chart-box { height: 230px; }
 }
+
+/* Iteración 0.16 — exportación individual */
+.trend-export { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.trend-export small { font-size: 12px; color: var(--text-secondary); }
+.trend-export button:disabled { opacity: .55; cursor: not-allowed; }

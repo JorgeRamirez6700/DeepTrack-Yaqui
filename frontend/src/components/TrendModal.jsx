@@ -5,13 +5,7 @@ import { api } from '../services/api.js';
 import { useTheme } from './ThemeProvider.jsx';
 import { etiquetaVigencia, fechaRegistrada, metros, prepararHistorico, resumenHistorico } from '../utils/monitoreoSonda.js';
 
-const RANGOS = [
-  { id: 'dia', label: 'Último día' },
-  { id: 'semana', label: 'Última semana' },
-  { id: 'mes', label: 'Último mes' },
-  { id: '6meses', label: 'Últimos 6 meses' },
-  { id: 'anio', label: 'Último año' },
-];
+import { RANGOS_SONDA as RANGOS, crearReporteSonda, descargarBlob } from '../utils/reporteSonda.js';
 
 function etiquetaEje(t, rango) {
   const fecha = new Date(t);
@@ -26,6 +20,9 @@ export default function TrendModal({ sonda, onClose, revision = 0 }) {
   useDialog(dialogRef, onClose);
   const [rango, setRango] = useState('mes');
   const [resultado, setResultado] = useState(null);
+  const [exportando, setExportando] = useState('');
+  const [errorExportacion, setErrorExportacion] = useState('');
+  const bloqueoExportacion = useRef(false);
   const id = sonda.idSonda;
   const vigente = resultado?.id === id && resultado?.rango === rango && resultado?.revision === revision;
   const estado = vigente ? resultado.estado : 'cargando';
@@ -43,6 +40,33 @@ export default function TrendModal({ sonda, onClose, revision = 0 }) {
       });
     return () => { activo = false; };
   }, [id, rango, revision]);
+
+  const cambiarRango = nuevo => {
+    if (nuevo === rango) return;
+    setResultado(null);
+    setErrorExportacion('');
+    setRango(nuevo);
+  };
+  const puedeExportar = estado === 'ok' && resumen.cantidad > 0 && !exportando;
+
+  async function exportar(formato) {
+    if (!puedeExportar || bloqueoExportacion.current) return;
+    bloqueoExportacion.current = true;
+    setExportando(formato);
+    setErrorExportacion('');
+    try {
+      const reporte = crearReporteSonda(sonda, rango, datos);
+      const blob = formato === 'pdf'
+        ? (await import('../utils/exportarPdfSonda.js')).generarPdfSonda(reporte)
+        : await (await import('../utils/exportarExcelSonda.js')).generarExcelSonda(reporte);
+      descargarBlob(blob, reporte.nombre + (formato === 'pdf' ? '.pdf' : '.xlsx'));
+    } catch {
+      setErrorExportacion('No se pudo generar el archivo. Intenta nuevamente.');
+    } finally {
+      bloqueoExportacion.current = false;
+      setExportando('');
+    }
+  }
 
   return (
     <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -63,7 +87,7 @@ export default function TrendModal({ sonda, onClose, revision = 0 }) {
 
         <div className="range-group" role="group" aria-label="Periodo histórico">
           {RANGOS.map(r => (
-            <button key={r.id} className={`range-btn ${rango === r.id ? 'active' : ''}`} aria-pressed={rango === r.id} onClick={() => setRango(r.id)}>
+            <button key={r.id} className={`range-btn ${rango === r.id ? 'active' : ''}`} aria-pressed={rango === r.id} disabled={Boolean(exportando)} onClick={() => cambiarRango(r.id)}>
               {r.label}
             </button>
           ))}
@@ -104,6 +128,16 @@ export default function TrendModal({ sonda, onClose, revision = 0 }) {
             </ResponsiveContainer>
           )}
         </div>
+        <div className="trend-export" role="group" aria-label="Exportación individual">
+          <button type="button" className="btn-small" disabled={!puedeExportar} onClick={() => exportar('pdf')}>
+            {exportando === 'pdf' ? 'Generando PDF…' : 'Exportar PDF'}
+          </button>
+          <button type="button" className="btn-small" disabled={!puedeExportar} onClick={() => exportar('xlsx')}>
+            {exportando === 'xlsx' ? 'Generando Excel…' : 'Exportar Excel'}
+          </button>
+          <small>{exportando ? 'Preparando archivo del periodo seleccionado…' : resumen.cantidad > 0 && estado === 'ok' ? 'El archivo conserva los datos del periodo mostrado.' : 'Disponible cuando existan lecturas válidas.'}</small>
+        </div>
+        {errorExportacion && <div className="error-msg" role="alert">{errorExportacion}</div>}
         <p className="trend-note">Indicadores descriptivos de las mediciones válidas del periodo. La variación conserva el signo; no es una predicción. Hora registrada sin zona horaria definida. Vigencia no equivale a conectividad.</p>
       </div>
     </div>
